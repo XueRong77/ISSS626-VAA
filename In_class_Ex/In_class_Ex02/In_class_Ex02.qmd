@@ -1,0 +1,143 @@
+---
+title: "In-class_Ex02"
+author: "Xuerong"
+---
+
+Spatial Point Patterns Analysis: spatstat methods
+
+Issue 1: Installing sf
+
+```{r}
+#| eval: false
+install.packages("sf", 
+                 repos = "https://packagemanager.posit.co/cran/2023-10-13")
+```
+
+Issue 2: Creating coastal outline
+
+```{r}
+library(dplyr)
+library(magrittr)
+library(sf)
+library(spatstat)
+
+mpsz_sf <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex02/geospatial/", 
+                layer = "MP14_SUBZONE_WEB_PL")
+
+sg_sf <- mpsz_sf %>%
+  st_union()
+```
+
+Creating ppp objects from sf data.frame
+
+```{r}
+childcare_sf <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex02/geospatial/child-care-services-geojson.geojson") %>%
+  st_transform(crs = 3414)
+
+childcare_ppp <- as.ppp(childcare_sf)
+plot(childcare_ppp)
+```
+
+```{r}
+summary(childcare_ppp)
+```
+
+Creating owin object from sf data.frame
+
+```{r}
+sg_owin <- as.owin(sg_sf)
+plot(sg_owin)
+```
+
+```{r}
+summary(sg_owin)
+```
+
+Combining point events object and owin object
+
+```{r}
+childcareSG_ppp = childcare_ppp[sg_owin]
+```
+
+Kernel Density Estimation of Spatial Point Event
+
+```{r}
+childcareSG_ppp.km <- rescale.ppp(childcareSG_ppp, 
+                                  1000, 
+                                  "km")
+
+kde_childcareSG_adaptive <- adaptive.density(
+  childcareSG_ppp.km, 
+  method="kernel")
+plot(kde_childcareSG_adaptive)
+```
+
+Kernel Density Estimation sf method:
+
+```{r}
+library(sp)
+
+# Convert kde_childcareSG_adaptive to SpatialGridDataFrame using as()
+gridded_kde_childcareSG_ad <- as(
+  kde_childcareSG_adaptive,
+  "SpatialGridDataFrame"
+)
+
+# Plot the KDE using spplot
+spplot(gridded_kde_childcareSG_ad)
+```
+
+spatstat.geom method
+
+```{r}
+gridded_kde_childcareSG_ad <- as(
+  kde_childcareSG_adaptive,
+  "SpatialGridDataFrame")
+spplot(gridded_kde_childcareSG_ad)
+```
+
+Visualising KDE using tmap
+
+```{r}
+# Load necessary libraries
+library(sp)
+library(raster)
+library(tmap)
+
+# Assuming kde_childcareSG_adaptive is in a compatible format (e.g., im or SpatialGridDataFrame)
+# Convert the KDE result to a raster (adjust based on your actual object type)
+gridded_kde_childcareSG_ad <- as(kde_childcareSG_adaptive, "SpatialGridDataFrame")  # Convert to SpatialGridDataFrame
+kde_childcareSG_ad_raster <- raster(gridded_kde_childcareSG_ad)  # Convert to raster
+
+# Now plot with tmap
+tm_shape(kde_childcareSG_ad_raster) + 
+  tm_raster(palette = "viridis") +
+  tm_layout(legend.position = c("right", "bottom"), 
+            frame = FALSE,
+            bg.color = "#E4D5C9")
+```
+
+Extracting study area using sf objects
+
+```{r}
+pg_owin <- mpsz_sf %>%
+  filter(PLN_AREA_N == "PUNGGOL") %>%
+  as.owin()
+
+childcare_pg = childcare_ppp[pg_owin]
+
+plot(childcare_pg)  
+```
+
+Monte Carlo Simulation
+
+```{r}
+set.seed(1234)
+```
+
+Importing Traffic Accident Data
+
+```{r}
+ rdacc_sf <- read.csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex02/data/thai_road_accident_2019_2022.csv") %>% filter(!is.na(longitude) & longitude != "", !is.na(latitude) & latitude != "") %>% st_as_sf(coords = c( "longitude", "latitude"), crs=4326) %>% st_transform(crs = 32647)
+
+```

@@ -1,0 +1,140 @@
+---
+title: "In_class_Ex06"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1: Load Required Libraries
+
+Ensure that the necessary R packages are loaded.
+
+```{r}
+pacman::p_load(sf, sfdep, tmap, plotly, tidyverse, Kendall)
+```
+
+## Step 2: Load Data
+
+Load the geospatial and attribute datasets for the Hunan region.
+
+```{r}
+# Load the shapefile for Hunan province
+hunan <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex06/geospatial", layer = "Hunan")
+
+# Load the attribute data for Hunan from a CSV file
+hunan_GDPPC <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex06/aspatial/Hunan_GDPPC.csv")
+```
+
+## Step 3: Create a Spatio-Temporal Cube
+
+Create a spatio-temporal cube using `spacetime()` from the `sfdep` package.
+
+```{r}
+GDPPC_st <- spacetime(hunan_GDPPC, hunan, .loc_col = "County", .time_col = "Year")
+
+# Verify if the object is a space-time cube
+is_spacetime_cube(GDPPC_st)
+```
+
+## Step 4: Derive Spatial Weights for Each Time Slice
+
+Calculate spatial weights for each year by deriving neighbors and inverse distance weights.
+
+```{r}
+GDPPC_nb <- GDPPC_st %>%
+  activate("geometry") %>%
+  mutate(nb = include_self(st_contiguity(geometry)),
+         wt = st_inverse_distance(nb, geometry, scale = 1, alpha = 1),
+         .before = 1) %>%
+  set_nbs("nb") %>%
+  set_wts("wt")
+```
+
+## Step 5: Compute Local Gi\* Statistics
+
+Calculate local Gi\* statistics for each location and year.
+
+```{r}
+gi_stars <- GDPPC_nb %>% 
+  group_by(Year) %>% 
+  mutate(gi_star = local_gstar_perm(GDPPC, nb, wt)) %>% 
+  tidyr::unnest(gi_star)
+```
+
+## Step 6: Mann-Kendall Trend Test
+
+Perform the Mann-Kendall trend test to identify monotonic trends for the Gi\* statistics.
+
+```{r}
+cbg <- gi_stars %>% 
+  ungroup() %>% 
+  filter(County == "Changsha") %>% 
+  select(County, Year, gi_star)
+
+# Plotting Gi* over time for Changsha
+p <- ggplot(data = cbg, aes(x = Year, y = gi_star)) +
+  geom_line() +
+  theme_light()
+
+ggplotly(p)
+
+# Performing Mann-Kendall test
+cbg %>%
+  summarise(mk = list(unclass(Kendall::MannKendall(gi_star)))) %>%
+  tidyr::unnest_wider(mk)
+```
+
+## Step 7: Mann-Kendall Test for All Locations
+
+Calculate the Mann-Kendall trend test for each county.
+
+```{r}
+ehsa <- gi_stars %>%
+  group_by(County) %>%
+  summarise(mk = list(unclass(Kendall::MannKendall(gi_star)))) %>%
+  tidyr::unnest_wider(mk)
+
+# Display top 10 significant emerging hot/cold spots
+emerging <- ehsa %>% 
+  arrange(sl, abs(tau)) %>% 
+  slice(1:10)
+head(emerging)
+```
+
+## Step 8: Perform Emerging Hot Spot Analysis
+
+Use `emerging_hotspot_analysis()` from the `sfdep` package to perform EHSA.
+
+```{r}
+ehsa_result <- emerging_hotspot_analysis(x = GDPPC_st, .var = "GDPPC", k = 1, nsim = 99)
+```
+
+## Step 9: Visualize the EHSA Results
+
+Visualize the spatial distribution of emerging hot spot classifications.
+
+```{r}
+# Join EHSA results with spatial data
+hunan_ehsa <- hunan %>%
+  left_join(ehsa_result, by = join_by(County == location))
+
+# Filter significant results
+ehsa_sig <- hunan_ehsa %>%
+  filter(p_value < 0.05)
+
+# Plotting the EHSA map
+tmap_mode("plot")
+tm_shape(hunan_ehsa) +
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+  tm_shape(ehsa_sig) +
+  tm_fill("classification") +
+  tm_borders(alpha = 0.4)
+```
+
+## Step 10: Interpretation of EHSA Classes
+
+Interpret the results of the Emerging Hot Spot Analysis to identify evolving trends in GDPPC over time and highlight significant spatial patterns.

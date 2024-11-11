@@ -1,0 +1,4 @@
+- source: project
+  netlify:
+    - id: d8df8151-fcbf-42a9-b523-a3f67f5d9b9d
+      url: 'https://capable-fairy-7e98e5.netlify.app'

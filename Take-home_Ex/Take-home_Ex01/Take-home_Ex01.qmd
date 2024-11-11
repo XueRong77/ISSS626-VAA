@@ -1,0 +1,384 @@
+---
+title: "Take-home_Ex01"
+author: "Xuerong"
+---
+
+# **Install Necessary Packages**
+
+```{r}
+required_packages <- c("sf", "tidyverse", "spatstat", "gganimate", "readr", "lubridate", "ggplot2", "spatstat.linnet")
+
+for (pkg in required_packages) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+  }
+}
+
+```
+
+## 1. Setup and Loading Packages
+
+```{r}
+library(sf)
+library(tidyverse)
+library(spatstat)
+library(gganimate)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(spatstat.linnet)
+library(caret) # For potential machine learning bonus analysis
+library(spdep) # For advanced spatial statistics
+```
+
+## 2. Data Import and Wrangling
+
+### Import Road Accident Data
+
+```{r}
+# Load road accident data
+accidents <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex01/data/thai_road_accident_2019_2022.csv")
+
+# Load road network data (assuming GeoJSON format)
+roads <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex01/data/hotosm_tha_roads_lines_geojson.geojson")
+
+# Filter accidents for BMR and remove missing coordinates
+bmr_regions <- c("Bangkok", "Nonthaburi", "Pathum Thani", "Samut Prakan", "Nakhon Pathom", "Samut Sakhon")
+
+accidents_clean <- accidents %>%
+  filter(!is.na(longitude), !is.na(latitude)) %>%
+  filter(province_en %in% bmr_regions)
+
+```
+
+### Convert to Spatial Data
+
+```{r}
+# Convert accidents data to a spatial object with appropriate CRS (WGS84)
+accidents_sf <- st_as_sf(accidents_clean, coords = c("longitude", "latitude"), crs = 4326)
+```
+
+### Add Time-Related Variables
+
+```{r}
+# Add derived variables: hour, day of the week, and season
+accidents_sf <- accidents_sf %>%
+  mutate(incident_datetime = as.POSIXct(incident_datetime, format="%Y-%m-%d %H:%M:%S"),
+         hour = hour(incident_datetime),
+         day_of_week = wday(incident_datetime, label = TRUE),
+         season = case_when(
+           month(incident_datetime) %in% c(12, 1, 2) ~ "Winter",
+           month(incident_datetime) %in% c(3, 4, 5) ~ "Summer",
+           month(incident_datetime) %in% c(6, 7, 8) ~ "Rainy",
+           TRUE ~ "Autumn"
+         ))
+
+# Create a new severity column based on fatalities and injuries
+accidents_sf$severity <- with(accidents_sf, ifelse(number_of_fatalities > 0, "High",
+                                    ifelse(number_of_injuries > 0, "Medium", "Low")))
+```
+
+## 3. Geospatial Analysis
+
+### Network Spatial Point Pattern Analysis
+
+```{r}
+# Reproject accidents data to UTM Zone 47N (EPSG: 32647)
+accidents_sf_projected <- st_transform(accidents_sf, crs = 32647)
+
+# Extract coordinates and bounding box for spatstat conversion
+coords <- st_coordinates(accidents_sf_projected)
+
+# Create a spatstat window (bounding box) from the reprojected coordinates
+window <- owin(range(coords[, 1]), range(coords[, 2]))
+
+# Convert the data to ppp format (spatstat point pattern object)
+accidents_ppp <- ppp(x = coords[, 1], y = coords[, 2], window = window)
+
+# Plot the point pattern to confirm
+plot(accidents_ppp, main = "Road Traffic Accidents in BMR")
+
+```
+
+### Kernel Density Estimation (KDE)
+
+```{r}
+# Step 1: Reproject the accidents data to UTM Zone 47N (EPSG: 32647)
+accidents_projected <- st_transform(accidents_sf, crs = 32647)
+
+# Step 2: Extract the coordinates and create a bounding window
+accident_coords <- st_coordinates(accidents_projected)
+accident_window <- owin(xrange = range(accident_coords[, 1]), yrange = range(accident_coords[, 2]))
+
+# Step 3: Convert to ppp object
+accidents_ppp <- ppp(x = accident_coords[, 1], y = accident_coords[, 2], window = accident_window)
+
+accidents_ppp_unique <- unique.ppp(accidents_ppp)
+
+
+
+# Step 4: Verify the ppp object
+summary(accidents_ppp_unique)
+
+```
+
+```{r}
+# Create a Kernel Density Estimation (KDE) map
+accident_density <- density(accidents_ppp_unique, sigma = 1000)
+
+# Plot the density map
+plot(accident_density, main="Accident Density in BMR", col=topo.colors(356))
+
+```
+
+Network Spatial Point Pattern Analysis
+
+```{r}
+library(dplyr)
+
+roads_projected <- st_transform(roads, crs = 32647)
+
+# Filter the data to keep only rows where both 'name' and 'name.en' are not empty
+roads_filtered <- roads_projected %>%
+  filter(name != "", name.en != "", !is.na(name), !is.na(name.en))
+
+# Check how many records remain after filtering
+print(nrow(roads_filtered))
+```
+
+```{r}
+# Load necessary libraries
+library(sf)  # For st_cast and spatial operations
+library(sp)
+library(lwgeom)
+library(spatstat.geom)
+library(spatstat.linnet)
+library(profvis)  # For profiling
+
+# Function to process data in chunks for memory efficiency
+process_chunk <- function(start_index, end_index, roads_sp_simplified) {
+  message(paste("Processing chunk from", start_index, "to", end_index))
+  
+  # Extract the line segments for the chunk
+  line_segments <- lapply(slot(roads_sp_simplified[start_index:end_index, ], "lines"), function(line_obj) {
+    lapply(line_obj@Lines, function(single_line) {
+      single_line@coords  # Extract coordinates
+    })
+  })
+  
+  # Combine the coordinates
+  all_coords <- do.call(rbind, unlist(line_segments, recursive = FALSE))
+  segments <- cbind(all_coords[1:(nrow(all_coords) - 1), ], all_coords[2:nrow(all_coords), ])
+  
+  return(segments)
+}
+
+
+message("Starting the process...")
+
+# Step 1: Cast to LINESTRING
+message("Casting to LINESTRING...")
+roads_linestring <- st_cast(roads_filtered, "LINESTRING")
+message("Casting successful.")
+
+# Step 2: Subset the dataset (for testing smaller portions)
+message("Subsetting the dataset for testing...")
+roads_linestring_subset <- roads_linestring[1:500, ]
+message("Subsetting successful.")
+
+# Step 3: Ensure geometries are LINESTRING and remove empty geometries
+message("Removing non-LINESTRING and empty geometries...")
+roads_linestring_subset <- roads_linestring_subset[st_geometry_type(roads_linestring_subset) == "LINESTRING", ]
+roads_linestring_subset <- roads_linestring_subset[!st_is_empty(roads_linestring_subset), ]
+message("Empty geometries removed.")
+
+# Step 4: Simplify the geometries using sf's st_simplify
+message("Simplifying geometries with sf's st_simplify...")
+roads_simplified <- st_simplify(roads_linestring_subset, dTolerance = 1000)  # Adjust tolerance as needed
+message("Simplification successful.")
+
+# Step 5: Convert the simplified sf object to Spatial
+message("Converting simplified sf object to Spatial...")
+roads_sp_simplified <- as(roads_simplified, "Spatial")
+message("Conversion to Spatial successful.")
+
+# Step 6: Process data in chunks to manage memory usage
+message("Processing data in chunks...")
+chunk_size <- 100  # Define chunk size based on memory capacity
+num_chunks <- ceiling(nrow(roads_sp_simplified) / chunk_size)
+
+all_segments <- list()  # Initialize list to store results
+
+for (i in seq(1, nrow(roads_sp_simplified), by = chunk_size)) {
+  end_index <- min(i + chunk_size - 1, nrow(roads_sp_simplified))
+  message(paste("Processing chunk", i, "to", end_index))
+  all_segments[[length(all_segments) + 1]] <- process_chunk(i, end_index, roads_sp_simplified)
+}
+
+# Combine all segments after processing
+message("Combining segments...")
+final_segments <- do.call(rbind, all_segments)
+
+# Step 7: Define the spatial window
+message("Defining spatial window...")
+window <- owin(xrange = range(final_segments[, 1]), yrange = range(final_segments[, 2]))
+
+# Step 8: Create the psp object using the extracted segments
+message("Creating psp object...")
+psp_object <- psp(
+  x0 = final_segments[, 1],  # Start x-coordinates
+  y0 = final_segments[, 2],  # Start y-coordinates
+  x1 = final_segments[, 3],  # End x-coordinates
+  y1 = final_segments[, 4],  # End y-coordinates
+  window = window            # Define the spatial window
+)
+message("PSP object creation successful.")
+
+# Step 9: Print the summary of the created psp object
+message("PSP summary...")
+print(summary(psp_object))
+
+# Step 10: Convert the psp object to a linnet object (linear network)
+message("Converting psp object to linnet object...")
+linnet_object <- as.linnet(psp_object)
+message("Linnet object conversion successful.")
+
+# Step 11: Print the summary of the linnet object to check if everything is correct
+message("Linnet summary...")
+print(summary(linnet_object))
+    
+    # Plot the linear network
+plot(linnet_object, main = "Linear Network")
+
+
+
+```
+
+```{r}
+# Create the linear network
+accident_net <- lpp(accidents_ppp_unique, linnet_object)
+
+# Plot the road network to verify
+# Plot with custom colors and symbols
+plot(accident_net, 
+     main = "Accidents on Road Network in BMR",
+     pch = 19,           
+     cex = 0.5,          
+     col = "black",        
+     lty = 1,            
+     lwd = 2,            
+     col.network = "blue")
+
+```
+
+Spatial Clustering (K-Function)
+
+```{r}
+# Apply K-function to analyze clustering on the road network
+accident_net_subset <- accident_net[1:1000]  # Use the first 1000 points
+K_result <- linearK(accident_net_subset)
+
+
+
+# Plot the result of the K-function
+plot(K_result, main="K-Function Analysis of Accidents in BMR")
+
+```
+
+## 4. Geovisualisation and Geocommunication
+
+### **Accident Heatmap and Road Network Overlay**
+
+```{r}
+
+ggplot() +
+  geom_sf(data = roads, color = "grey") +
+  geom_sf(data = accidents_sf, aes(color = severity), alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Road Traffic Accidents in Bangkok Metropolitan Region")
+
+
+```
+
+### Spatio-Temporal Visualization (Animation)
+
+```{r}
+# Create an animated visualization of accidents over time (by hour)
+accident_animation <- ggplot(accidents_sf) +
+  geom_point(aes(x = st_coordinates(accidents_sf)[, 1], 
+                 y = st_coordinates(accidents_sf)[, 2], color = severity), alpha = 0.6) +
+  transition_time(hour) +
+  labs(title = 'Accident Distribution Over Time: {frame_time}') +
+  theme_minimal()
+
+# Save the animation as a GIF
+animate(accident_animation, renderer = gifski_renderer())
+
+```
+
+```         
+```
+
+### Space-Time K-function Analysis
+
+```{r}
+# Load necessary libraries
+library(spatstat.geom)
+library(spatstat)
+library(spatstat.core)
+
+# Assuming accidents_sf is your accident data
+
+# Reproject accidents_sf to UTM Zone 47N (EPSG: 32647)
+accidents_projected <- st_transform(accidents_sf, crs = 32647)
+
+# Convert 'incident_datetime' to numeric time (hours since start of study)
+accidents_projected$incident_time_numeric <- as.numeric(difftime(
+  accidents_projected$incident_datetime, min(accidents_projected$incident_datetime), units = "hours"))
+
+# Extract spatial coordinates from accidents_sf
+coords <- st_coordinates(accidents_projected)
+
+# Create a spatstat window (bounding box) from the reprojected coordinates
+window <- owin(xrange = range(coords[, 1]), yrange = range(coords[, 2]))
+
+# Convert the data to ppp format (spatstat point pattern object)
+accidents_ppp <- ppp(x = coords[, 1], y = coords[, 2], window = window)
+
+# Assign temporal marks (time in hours)
+marks(accidents_ppp) <- data.frame(time = accidents_projected$incident_time_numeric)
+
+# Compute the space-time K-function
+Kst <- Kest(accidents_ppp, correction = "Ripley")
+
+# Plot the Space-Time K-function result
+plot(Kst, main = "Space-Time K-function for Road Accidents")
+
+```
+
+## 5. Bonus: Predictive Modeling (Machine Learning)
+
+### Feature Preparation for Machine Learning
+
+```{r}
+# Remove the geometry column by converting the sf object to a regular data frame
+accidents_ml <- accidents_sf %>%
+  dplyr::select(severity, hour, day_of_week, season) %>%
+  st_set_geometry(NULL)  
+# Convert factors to numeric for ML purposes
+accidents_ml$day_of_week <- as.numeric(as.factor(accidents_ml$day_of_week))
+accidents_ml$season <- as.numeric(as.factor(accidents_ml$season))
+
+str(accidents_ml)
+```
+
+### Random Forest Model
+
+```{r}
+# Train a basic Random Forest to predict accident severity based on time and seasonal features
+set.seed(123)
+rf_model <- train(severity ~ ., data = accidents_ml, method = "rf", trControl = trainControl(method = "cv", number = 5))
+
+# Check model performance
+rf_model
+```

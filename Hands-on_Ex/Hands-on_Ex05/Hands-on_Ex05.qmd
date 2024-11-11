@@ -1,0 +1,158 @@
+---
+title: "Hands-on Exercise 05"
+author: "XueRong"
+
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+# Hands-on Exercise 05
+
+## Introduction
+
+In this exercise, we will focus on exploring geospatial and aspatial datasets from Hunan province. You will learn how to load, clean, and visualize geospatial data, and combine it with aspatial data to perform basic exploratory data analysis (EDA).
+
+We will be working with the following tools and packages: - R for data manipulation and analysis - ggplot2 for data visualization - sf for geospatial data handling - dplyr for data wrangling
+
+
+------------------------------------------------------------------------
+
+## Part 1: Data Loading and Inspection
+
+```{r}
+# Load necessary libraries
+library(sf)       
+library(ggplot2)  
+library(dplyr)    
+library(readr)   
+
+# Load geospatial data
+hunan <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex05/data/geospatial", layer = "Hunan")
+
+# Load aspatial data
+hunan2012 <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex05/data/aspatial/Hunan_2012.csv")
+
+# View the first few rows of the datasets
+head(hunan)
+head(hunan2012)
+```
+
+### Task 1: Briefly inspect the datasets
+
+-   How many rows and columns do the datasets contain?
+-   What are the column names and data types for each dataset?
+
+```{r}
+# Check the structure and summary of the geospatial data
+str(hunan)
+summary(hunan)
+
+# Check the structure and summary of the aspatial data
+str(hunan2012)
+summary(hunan2012)
+```
+
+------------------------------------------------------------------------
+
+## Part 2: Data Cleaning
+
+Before performing analysis, we need to ensure the datasets are clean. In this section, we will: 1. Handle missing values in the aspatial dataset. 2. Prepare the datasets for spatial analysis.
+
+### Task 2: Identify and handle missing values
+
+-   Check for missing values in the aspatial data.
+-   Decide how to handle them (remove rows, fill with mean/median, etc.).
+
+```{r}
+# Check for missing values in the aspatial data
+colSums(is.na(hunan2012))
+
+# Remove rows with missing values (as an example)
+hunan2012_clean <- na.omit(hunan2012)
+
+# Verify that missing values have been handled
+colSums(is.na(hunan2012_clean))
+```
+
+------------------------------------------------------------------------
+
+## Part 3: Exploratory Data Analysis (EDA)
+
+Now that the data is clean, perform some exploratory data analysis. We'll focus on exploring the spatial distribution of data.
+
+### Task 3: Summary Statistics
+
+Calculate and display summary statistics for key variables in the aspatial dataset.
+
+```{r}
+# Get summary statistics for numerical columns in the aspatial data
+summary(hunan2012_clean)
+```
+
+### Task 4: Visualize the Spatial Distribution
+
+Create visualizations to understand the spatial distribution of the data.
+
+```{r}
+# Plot the spatial distribution of the Hunan geospatial dataset
+ggplot(data = hunan) +
+  geom_sf() +
+  labs(title = 'Spatial Distribution of Hunan Region')
+```
+
+------------------------------------------------------------------------
+
+## Part 4: Data Wrangling with dplyr
+
+Use `dplyr` to filter, mutate, and summarize data. We'll link the geospatial and aspatial datasets.
+
+### Task 5: Join Geospatial and Aspatial Data
+
+Join the `hunan` geospatial dataset with the `hunan2012_clean` aspatial dataset based on a common column (e.g., region name).
+
+```{r}
+# Example: Perform a left join on the datasets based on the region name or a common key
+hunan_combined <- hunan %>%
+  left_join(hunan2012_clean, by = "County")
+
+# View the combined data
+head(hunan_combined)
+```
+
+### Task 6: Summarize Data
+
+Summarize the data to find the mean, median, and count of a particular variable (e.g., population, income).
+
+```{r}
+# Summarize the data by a grouping variable (e.g., region)
+summarized_data <- hunan_combined %>%
+  group_by(County) %>%
+  summarize(mean_income = mean(avg_wage, na.rm = TRUE))
+
+# View the summarized data
+summarized_data
+```
+
+------------------------------------------------------------------------
+
+## Part 5: Data Visualization with ggplot2
+
+Create more complex visualizations to explore relationships between variables.
+
+### Task 7: Choropleth Map
+
+Create a choropleth map to visualize a variable (e.g., income or population) across regions in Hunan.
+
+```{r}
+ggplot(hunan_combined) +
+  geom_sf(aes(fill = avg_wage)) +
+  scale_fill_viridis_c() +
+  labs(title = 'Choropleth Map of Average Wage in Hunan Regions', fill = 'Average Wage') +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
+

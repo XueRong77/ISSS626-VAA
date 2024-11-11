@@ -1,0 +1,338 @@
+---
+title: "In_class_Ex01"
+author: "Xuerong"
+---
+
+Getting Started
+
+Install all needed packages
+
+```{r}
+pacman::p_load(tidyverse, sf, tmap, ggstatsplot,dplyr)
+
+```
+
+Working with Master Plan Planning Sub-zone Data
+
+```{r}
+mpsz14_shp <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/",
+                layer = "MP14_SUBZONE_WEB_PL")
+
+```
+
+```{R}
+file.exists("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/MasterPlan2014SubzoneBoundaryWebKML.kml")
+```
+
+```{r}
+#mpsz14_kml <- st_read("data/MasterPlan2014SubzoneBoundaryWebKML.kml")
+mpsz14_kml <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/MP14_SUBZONE_WEB_PL.kml")
+```
+
+```{r}
+st_write(mpsz14_shp, 
+         "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/MP14_SUBZONE_WEB_PL.kml",
+         delete_dsn = TRUE)
+```
+
+Working with Pre-school Location Data
+
+```{r}
+preschool_kml <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/PreSchoolsLocation.kml")
+```
+
+```{r}
+preschool_geojson <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/PreSchoolsLocation.geojson") 
+```
+
+Working with Master Plan 2019 Subzone Boundary Data
+
+```{r}
+mpsz19_shp <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/",
+                layer = "MPSZ-2019")
+```
+
+```{r}
+mpsz19_kml <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/MasterPlan2019SubzoneBoundaryNoSeaKML.kml")
+```
+
+Handling Coordinate Systems
+
+Checking coordinate system
+
+```{r}
+st_crs(mpsz19_shp)
+```
+
+Transforming coordinate system
+
+```{r}
+mpsz19_shp <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/",
+                layer = "MPSZ-2019") %>%
+  st_transform(crs = 3414)
+```
+
+```{r}
+preschool <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/PreSchoolsLocation.kml") %>%
+  st_transform(crs = 3414)
+```
+
+Geopatial Data Wrangling
+
+Point-in-Polygon count
+
+```{r}
+mpsz19_shp <- mpsz19_shp %>%
+  mutate(`PreSch Count` = lengths(
+    st_intersects(mpsz19_shp, preschool)))
+```
+
+Computing density
+
+```{r}
+mpsz19_shp <- mpsz19_shp %>%
+  mutate(Area = units::drop_units(
+    st_area(.)),
+    `PreSch Density` = `PreSch Count` / Area * 1000000
+  )
+```
+
+Statistical Analysis
+
+```{r}
+# Initialize mpsz as a data frame with the converted columns from mpsz19_shp
+mpsz <- data.frame(`PreSch Density` = as.numeric(as.character(mpsz19_shp$`PreSch Density`)),
+                   `PreSch Count` = as.numeric(as.character(mpsz19_shp$`PreSch Count`)))
+
+
+mpsz$`PreSch Density` <- as.numeric(as.character(mpsz19_shp$`PreSch Density`))
+mpsz$`PreSch Count` <- as.numeric(as.character(mpsz19_shp$`PreSch Count`)) 
+mpsz19_shp <- as.data.frame(mpsz19_shp)
+
+ggscatterstats(data = mpsz19_shp,
+               x = `PreSch Density`,
+               y = `PreSch Count`,
+               type = "parametric")
+```
+
+Working with Population Data
+
+```{r}
+popdata <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex01/data/respopagesextod2023.csv", show_col_types = FALSE)
+
+```
+
+Data Wrangling
+
+```{r}
+popdata2023 <- popdata %>% 
+  group_by(PA, SZ, AG) %>% 
+  summarise(`POP`=sum(`Pop`)) %>%  
+  ungroup() %>% 
+  pivot_wider(names_from=AG,
+              values_from = POP)
+
+colnames(popdata2023)
+```
+
+Data Processing
+
+```{r}
+# Load necessary libraries
+library(dplyr)
+library(tidyr)
+
+# Check the column names to ensure they are correctly formatted
+colnames(popdata2023)
+
+popdata2023 <- popdata2023 %>%
+  rename_with(~ gsub("-", "_", .x)) 
+
+# Use rowwise() to calculate YOUNG, AGED, ECONOMY ACTIVE, and DEPENDENCY
+popdata2023 <- popdata2023 %>%
+  rowwise() %>%
+  mutate(
+    # Calculate YOUNG: Sum of 0_to_4, 5_to_9, and 10_to_14 columns
+    YOUNG = sum(c_across(c(`0_to_4`, `5_to_9`, `10_to_14`)), na.rm = TRUE),
+    
+    # Calculate AGED: Sum of 65_to_69, 70_to_74, 75_to_79, 80_to_84, 85_to_89, 90_and_Over
+    AGED = sum(c_across(c(`65_to_69`, `70_to_74`, `75_to_79`, `80_to_84`, `85_to_89`, `90_and_Over`)), na.rm = TRUE),
+    
+    # Calculate ECONOMY ACTIVE: Sum of 15_to_19, 20_to_24, 25_to_29, ..., 60_to_64
+    `ECONOMY ACTIVE` = sum(c_across(c(`15_to_19`, `20_to_24`, `25_to_29`, `30_to_34`, 
+                                      `35_to_39`, `40_to_44`, `45_to_49`, `50_to_54`, 
+                                      `55_to_59`, `60_to_64`)), na.rm = TRUE),
+    
+    # Calculate DEPENDENCY ratio: (YOUNG + AGED) / ECONOMY ACTIVE
+    DEPENDENCY = (YOUNG + AGED) / `ECONOMY ACTIVE`
+  ) %>%
+  ungroup()
+
+head(popdata2023)
+```
+
+Joining popdata2023 and mpsz19_shp
+
+```{r}
+popdata2023 <- popdata2023 %>%
+  mutate_at(.vars = vars(PA, SZ), 
+          .funs = list(toupper))
+
+mpsz_pop2023 <- left_join(mpsz19_shp, popdata2023,
+                          by = c("SUBZONE_N" = "SZ"))
+
+pop2023_mpsz <- left_join(popdata2023, mpsz19_shp, 
+                          by = c("SZ" = "SUBZONE_N"))
+
+
+```
+
+Choropleth Map of Dependency Ratio by Planning Subzone
+
+Analytical Map: Percentile Map Step 1: Data Preparation
+
+```{r}
+mpsz_pop2023 <- mpsz_pop2023 %>%
+  drop_na()
+```
+
+Step 2: The get function
+
+```{r}
+get.var <- function(vname,df) {
+  v <- df[vname] %>% 
+    st_set_geometry(NULL)
+  v <- unname(v[,1])
+  return(v)
+}
+```
+
+Step 3: A percentile mapping function
+
+```{r}
+# Ensure mpsz_pop2023 is an sf object (with geometry)
+if (!inherits(mpsz_pop2023, "sf")) {
+  # If geometry is missing, restore it from the original spatial data
+  mpsz_pop2023 <- st_as_sf(mpsz_pop2023)
+}
+
+# Recreate the percentmap function to use correct objects
+percentmap <- function(vnam, sf_object, legtitle = NA, mtitle = "Percentile Map") {
+  # Quantiles for percentiles
+  percent <- c(0, .01, .1, .5, .9, .99, 1)
+  
+  # Access the column directly from the sf object
+  var <- sf_object[[vnam]]
+  
+  # Calculate quantile breaks
+  bperc <- quantile(var, percent, na.rm = TRUE)
+  
+  # Create the map using the spatial object
+  tm_shape(sf_object) +
+    tm_polygons(col = vnam, 
+                title = legtitle, 
+                breaks = bperc, 
+                palette = "Blues",
+                labels = c("< 1%", "1% - 10%", "10% - 50%", "50% - 90%", "90% - 99%", "> 99%"))  +
+    tm_borders() +
+    tm_layout(main.title = mtitle, 
+              title.position = c("right", "bottom"))
+}
+```
+
+Step 4: Running the functions
+
+```{r}
+mpsz_pop2023 <- sf::st_make_valid(mpsz_pop2023)
+
+percentmap("DEPENDENCY", mpsz_pop2023)
+```
+
+```{r}
+ggplot(data = mpsz_pop2023,
+       aes(x = "",
+           y = DEPENDENCY)) +
+  geom_boxplot()
+```
+
+Step 1: Creating the boxbreaks function
+
+```{r}
+boxbreaks <- function(v,mult=1.5) {
+  qv <- unname(quantile(v))
+  iqr <- qv[4] - qv[2]
+  upfence <- qv[4] + mult * iqr
+  lofence <- qv[2] - mult * iqr
+  # initialize break points vector
+  bb <- vector(mode="numeric",length=7)
+  # logic for lower and upper fences
+  if (lofence < qv[1]) {  # no lower outliers
+    bb[1] <- lofence
+    bb[2] <- floor(qv[1])
+  } else {
+    bb[2] <- lofence
+    bb[1] <- qv[1]
+  }
+  if (upfence > qv[5]) { # no upper outliers
+    bb[7] <- upfence
+    bb[6] <- ceiling(qv[5])
+  } else {
+    bb[6] <- upfence
+    bb[7] <- qv[5]
+  }
+  bb[3:5] <- qv[2:4]
+  return(bb)
+}
+```
+
+Step 2: Creating the get.var function
+
+```{r}
+get.var <- function(vname,df) {
+  v <- df[vname] %>% st_set_geometry(NULL)
+  v <- unname(v[,1])
+  return(v)
+}
+```
+
+Step 3: Boxmap function
+
+```{r}
+boxmap <- function(vnam, df, 
+                   legtitle=NA,
+                   mtitle="Box Map",
+                   mult=1.5){
+  var <- get.var(vnam,df)
+  bb <- boxbreaks(var)
+  tm_shape(df) +
+    tm_polygons() +
+  tm_shape(df) +
+     tm_fill(vnam,title=legtitle,
+             breaks=bb,
+             palette="Blues",
+          labels = c("lower outlier", 
+                     "< 25%", 
+                     "25% - 50%", 
+                     "50% - 75%",
+                     "> 75%", 
+                     "upper outlier"))  +
+  tm_borders() +
+  tm_layout(main.title = mtitle, 
+            title.position = c("left",
+                               "top"))
+}
+```
+
+Step 4: Plotting Box Map
+
+```{r}
+boxmap("DEPENDENCY", mpsz_pop2023)
+```
+
+Plotting Interactive Box Map
+
+```{r}
+tmap_options(check.and.fix = TRUE)
+tmap_mode("view")
+boxmap("DEPENDENCY", mpsz_pop2023)
+```

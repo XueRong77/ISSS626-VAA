@@ -1,0 +1,159 @@
+---
+title: "Hands-on_Ex07"
+author: "Your Name"
+format: html
+execute:
+  echo: true
+---
+
+## Introduction
+
+In this analysis, we will explore the use of Geographically Weighted Regression (GWR) for spatial analysis. We will be using a dataset involving spatial attributes and will apply GWR to understand the relationships between variables in a spatially varying context.
+
+## Load Required Libraries
+
+```{r}
+# Install missing dependencies if necessary
+if (!requireNamespace("spatialreg", quietly = TRUE)) {
+  install.packages("spatialreg")
+}
+
+if (!requireNamespace("GWmodel", quietly = TRUE)) {
+  install.packages("GWmodel")
+}
+
+# Load necessary packages
+pacman::p_load(olsrr, corrplot, ggpubr, sf, spdep, GWmodel, tmap, tidyverse, gtsummary)
+
+```
+
+## Geospatial Data Wrangling
+
+### Importing Geospatial Data
+The geospatial data used in this analysis is called `MP14_SUBZONE_WEB_PL`, which is in ESRI shapefile format. The shapefile represents planning subzone boundaries from the URA Master Plan 2014.
+
+```{r}
+# Import shapefile using sf package
+mpsz <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex07/geospatial", layer = "MP14_SUBZONE_WEB_PL")
+
+# Update CRS information to EPSG:3414
+mpsz_svy21 <- st_transform(mpsz, 3414)
+
+# Verify the projection
+st_crs(mpsz_svy21)
+
+# View the extent
+st_bbox(mpsz_svy21)
+```
+
+## Aspatial Data Wrangling
+
+### Importing Aspatial Data
+The aspatial data is imported from a CSV file that contains condominium resale information.
+
+```{r}
+# Import aspatial data
+condo_resale <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex07/aspatial/Condo_resale_2015.csv")
+
+# Display the data structure
+glimpse(condo_resale)
+
+# Convert to sf object
+tidy_sf <- st_as_sf(condo_resale, coords = c("LONGITUDE", "LATITUDE"), crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
+## Exploratory Data Analysis (EDA)
+
+### EDA Using Statistical Graphics
+We start by visualizing the distribution of condominium selling prices.
+
+```{r}
+# Histogram of Selling Price
+ggplot(data = tidy_sf, aes(x = SELLING_PRICE)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+
+# Log transformation to normalize skewed distribution
+tidy_sf <- tidy_sf %>%
+  mutate(LOG_SELLING_PRICE = log(SELLING_PRICE))
+
+ggplot(data = tidy_sf, aes(x = LOG_SELLING_PRICE)) +
+  geom_histogram(bins = 20, color = "black", fill = "light blue")
+```
+
+## Hedonic Pricing Modeling
+
+### Simple Linear Regression
+We will start by modeling the relationship between `SELLING_PRICE` and `AREA_SQM` using simple linear regression.
+
+```{r}
+# Simple Linear Regression
+condo_slr <- lm(SELLING_PRICE ~ AREA_SQM, data = tidy_sf)
+summary(condo_slr)
+
+# Visualizing the model
+ggplot(data = tidy_sf, aes(x = AREA_SQM, y = SELLING_PRICE)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+### Multiple Linear Regression
+Next, we build a multiple linear regression model using several predictors.
+
+```{r}
+# Multiple Linear Regression
+condo_mlr <- lm(SELLING_PRICE ~ AREA_SQM + AGE + PROX_CBD + PROX_CHILDCARE + PROX_MRT, data = tidy_sf)
+summary(condo_mlr)
+```
+
+```{r}
+# Check for multicollinearity
+ols_vif_tol(condo_mlr)
+```
+
+## Geographically Weighted Regression (GWR)
+
+### Bandwidth Selection and Running GWR
+To understand spatial heterogeneity, we apply GWR to explore how relationships vary across space.
+
+```{r}
+tidy_spatial <- as_Spatial(tidy_sf)
+
+bw <- GWmodel::bw.gwr(SELLING_PRICE ~ AREA_SQM + AGE + PROX_CBD, 
+                      data = as_Spatial(tidy_sf), 
+                      approach = "CV", 
+                      kernel = "gaussian", 
+                      adaptive = TRUE)
+
+# Check if bandwidth was computed successfully
+print(bw)
+
+condo_gwr <- GWmodel::gwr.basic(SELLING_PRICE ~ AREA_SQM + AGE + PROX_CBD, 
+                                data = tidy_spatial, 
+                                bw = bw, 
+                                kernel = "gaussian", 
+                                adaptive = TRUE)
+
+# View GWR results summary
+summary(condo_gwr)
+```
+
+### Visualizing GWR Results
+We visualize the local coefficients to understand how relationships differ by location.
+
+```{r}
+# Convert GWR output to sf object
+condo_sf <- st_as_sf(condo_gwr$SDF)
+
+# Map local coefficients
+tmap_mode("view")
+tm_shape(mpsz_svy21) +
+  tm_polygons(alpha = 0.2) +
+  tm_shape(condo_sf) +
+  tm_dots(col = "AREA_SQM", size = 0.1, title = "Local Coefficients for AREA_SQM", border.col = "gray60", border.lwd = 1) +
+  tmap_options(check.and.fix = TRUE)
+```
+
+## Conclusion
+
+Geographically Weighted Regression provides insights into how the relationships between variables change spatially. This localized approach reveals patterns that are not captured by global models, highlighting the importance of spatial context in understanding property values.

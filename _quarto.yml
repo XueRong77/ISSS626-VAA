@@ -1,0 +1,62 @@
+zproject:
+  type: website
+
+website:
+  title: "ISSS626-VAA"
+  navbar:
+    left:
+      - text: "Hands-on Exercises"
+        menu: 
+          - text: "Hands-on Exercise 1"
+            href: "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.qmd"  
+          - text: "Hands-on Exercise 2"
+            href: "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.qmd"  
+          - text: "Hands-on Exercise 3"
+            href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03.qmd"  
+          - text: "Hands-on Exercise 4"
+            href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04.qmd"
+          - text: "Hands-on Exercise 5"
+            href: "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.qmd"
+          - text: "Hands-on Exercise 6"
+            href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06.qmd"
+          - text: "Hands-on Exercise 7"
+            href: "Hands-on_Ex/Hands-on_Ex07/Hands-on_Ex07.qmd"
+          - text: "Hands-on Exercise 8"
+            href: "Hands-on_Ex/Hands-on_Ex08/Hands-on_Ex08.qmd"
+          - text: "Hands-on Exercise 9"
+            href: "Hands-on_Ex/Hands-on_Ex09/Hands-on_Ex09.qmd"
+          - text: "Hands-on Exercise 10"
+            href: "Hands-on_Ex/Hands-on_Ex10/Hands-on_Ex10.qmd"
+      - text: "In-class Exercises"
+        menu:
+          - text: "In-class Exercise 1"
+            href: "In_class_Ex/In_class_Ex01/In_class_Ex01.qmd"  
+          - text: "In-class Exercise 2"
+            href: "In_class_Ex/In_class_Ex02/In_class_Ex02.qmd"  
+          - text: "In-class Exercise 3"
+            href: "In_class_Ex/In_class_Ex03/In_class_Ex03.qmd"  
+          - text: "In-class Exercise 4"
+            href: "In_class_Ex/In_class_Ex04/In_class_Ex04.qmd"
+          - text: "In-class Exercise 5"
+            href: "In_class_Ex/In_class_Ex05/In_class_Ex05.qmd"
+          - text: "In-class Exercise 6"
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex06.qmd"  
+      - text: "Take-home Exercises"
+        menu:
+          - text: "Take-home Exercise 1"
+            href: "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.qmd"  
+          - text: "Take-home Exercise 2"
+            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.qmd"  
+    right: 
+      - href: index.qmd
+        text: Home
+      - href: about.qmd
+        text: About
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+
+editor: visual

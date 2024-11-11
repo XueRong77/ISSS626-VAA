@@ -1,0 +1,144 @@
+---
+title: "In_class_Ex03"
+---
+
+# Installing and launching the R packages
+
+```{r}
+pacman::p_load(sf, spNetwork, tmap, tidyverse)
+```
+
+# Data Import and Preparation
+
+```{r}
+# Importing the road network data
+network <- st_read(dsn="/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex03/geospatial", 
+                   layer="Punggol_St")
+
+# Importing the childcare centers data
+childcare <- st_read(dsn="/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex03/geospatial",
+                     layer="Punggol_CC")
+```
+
+# Visualising the Geospatial Data
+
+```{r}
+# Plotting the road network and childcare centers
+plot(st_geometry(network))
+plot(childcare, add=TRUE, col='red', pch = 19)
+```
+
+# Preparing the Network for Analysis: Lixel Creation
+
+```{r}
+# Creating lixels to prepare the network for analysis
+lixels <- lixelize_lines(network, 
+                         700, 
+                         mindist = 375)
+```
+
+# Generating Line Centre Points
+
+```{r}
+# Generating line center points for analysis
+samples <- lines_center(lixels)
+
+samples <- st_as_sf(samples)
+samples <- st_set_crs(samples, st_crs(network))
+
+samples <- samples %>% select(geometry)
+childcare <- childcare %>% select(geometry)
+```
+
+# Network KDE (NKDE) Analysis
+
+```{r}
+# Define bandwidth and other parameters for NKDE
+bandwidth <- 500  # Bandwidth of 500 meters
+
+# Performing NKDE analysis on the network with childcare locations
+densities <- nkde(
+  lines = network,
+  events = childcare,
+  w = rep(1, nrow(childcare)),
+  samples = samples,
+  kernel_name = "quartic",
+  bw = 300, 
+  div= "bw", 
+  method = "simple"
+)
+
+# Adding the NKDE results to the samples and lixels dataframes
+samples$density <- densities
+lixels$density <- densities
+
+# Rescaling density values to represent number of events per kilometer
+samples$density <- samples$density * 1000
+lixels$density <- lixels$density * 1000
+```
+
+# Visualising the NKDE Results
+
+```{r}
+# Plotting the density using tmap
+library(tmap)
+tmap_mode("plot")
+
+# Plot NKDE result on the map
+nkde_map <- tm_shape(lixels) + 
+  tm_lines(col = "density", lwd = 2, palette = "Reds", title.col = "NKDE Density") +
+  tm_shape(childcare) +
+  tm_dots(col = "blue", size = 0.5, title = "Childcare Centers")
+
+nkde_map
+```
+
+# Further Analysis: Identifying Hotspots
+
+```{r}
+# Identifying high-density areas as potential hotspots
+high_density <- lixels %>%
+  filter(density > quantile(density, 0.75))
+
+# Plotting high-density areas
+high_density_map <- tm_shape(high_density) +
+  tm_lines(col = "density", lwd = 2, palette = "Blues", title.col = "High Density") +
+  tm_shape(childcare) +
+  tm_dots(col = "red", size = 0.5, title = "Childcare Centers")
+
+high_density_map
+```
+
+# Network G- and K-Function Analysis
+
+```{r}
+# Performing Network K-Function Analysis
+kfun_childcare <- kfunctions(
+  network, 
+  childcare,
+  start = 0, 
+  end = 1000, 
+  step = 50, 
+  width = 50, 
+  nsim = 50, 
+  resolution = 50,
+  verbose = FALSE, 
+  conf_int = 0.05
+)
+
+# Visualising K-Function Results
+kfun_childcare$plotk
+```
+
+# Summary and Conclusion
+
+```{r}
+# Summary of the NKDE analysis
+summary(densities)
+
+# Conclusion:
+# The NKDE analysis identifies areas with higher concentrations of childcare centers.
+# These high-density areas can be targeted for further urban planning or analysis.
+# The K-function analysis helps to determine if the observed childcare center distribution
+# is random or shows evidence of clustering or regularity.
+```

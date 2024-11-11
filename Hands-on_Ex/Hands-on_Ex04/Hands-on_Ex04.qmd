@@ -1,0 +1,71 @@
+---
+title: "Hands-on Exercise 04"
+author: "XueRong"
+---
+
+# Overview
+
+In this hands-on exercise, we will compute and visualize spatial weights in R using geospatial data. We will focus on contiguity-based (Queen and Rook) and distance-based spatial weights matrices.
+
+## Prerequisites
+
+We will use the following R packages:
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, knitr)
+```
+
+## 1. Load the Data
+
+### Import Shapefile into R
+
+\`\`\`{}}
+
+``` {r}
+hunan <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex04/data/geospatial", layer = "Hunan")
+```
+
+### Import CSV Data
+
+``` {r}
+hunan2012 <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex04/data/aspatial/Hunan_2012.csv")
+hunan <- left_join(hunan, hunan2012)
+```
+
+## 2. Compute Contiguity-based Spatial Weights
+
+### Queen-based Contiguity
+
+``` {r}
+wm_q <- poly2nb(hunan, queen = TRUE)
+summary(wm_q)
+```
+
+### Rook-based Contiguity
+
+``` {r}
+wm_r <- poly2nb(hunan, queen = FALSE)
+summary(wm_r)
+```
+
+## 3. Visualizing Spatial Weights
+
+``` {r}
+# Extract centroids of polygons
+coords <- st_coordinates(st_centroid(hunan))
+
+# Plot the base map
+plot(st_geometry(hunan), border = "lightgrey")
+
+# Plot the spatial weights with the correct coordinates
+plot(wm_q, coords, pch = 19, add = TRUE, col = "red")
+```
+
+## 4. Compute Distance-based Weights
+
+``` {r}
+wm_d62 <- dnearneigh(coords, 0, 62, longlat = TRUE)
+summary(wm_d62)
+```
+
+

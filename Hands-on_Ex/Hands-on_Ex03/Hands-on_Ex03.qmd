@@ -1,0 +1,151 @@
+---
+title: "Hands-on_Ex03"
+---
+
+Installing and launching the R packages
+
+```{r}
+pacman::p_load(sf, spNetwork, tmap, tidyverse)
+```
+
+Data Import and Preparation
+
+```{r}
+network <- st_read(dsn="/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex03/geospatial", 
+                   layer="Punggol_St")
+```
+
+```{r}
+childcare <- st_read(dsn="/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex03/geospatial",
+                     layer="Punggol_CC")
+```
+
+Visualising the Geospatial Data
+
+```{r}
+plot(st_geometry(network))
+plot(childcare,add=T,col='red',pch = 19)
+```
+
+Network KDE (NKDE) Analysis
+
+```{r}
+tmap_mode('view')
+tm_shape(childcare) + 
+  tm_dots() + 
+  tm_shape(network) +
+  tm_lines()
+```
+
+```{r}
+tmap_mode('plot')
+```
+
+Network KDE (NKDE) Analysis
+
+```{r}
+lixels <- lixelize_lines(network, 
+                         700, 
+                         mindist = 375)
+```
+
+```{r}
+library(sf)
+
+# Convert to segments
+lixels <- st_segmentize(network, dfMaxLength = 700)  # max length per segment
+
+# Plot the segmented network
+plot(lixels)
+
+```
+
+```{r}
+#samples <- lines_center(lixels) 
+
+# Extract only the geometry column (ignoring the attributes)
+lixel_geoms <- st_geometry(lixels)
+
+# Compute centroids of the geometries
+samples <- st_centroid(lixel_geoms)
+
+# Plot the original lixels and their centroids
+plot(lixel_geoms, col = 'gray', lwd = 2)  # Plot the original line segments
+plot(samples, col = 'blue', pch = 20, add = TRUE)  # Add centroid points
+```
+```{r}
+# Extract X and Y coordinates from centroids for distance calculations
+# Convert the 'samples' (sf points) into a matrix of coordinates
+centroid_coords <- st_coordinates(samples)
+
+# Calculate distances between consecutive centroids
+# We use Euclidean distance formula on the X and Y coordinates
+distances <- sqrt(diff(centroid_coords[, "X"])^2 + diff(centroid_coords[, "Y"])^2)
+
+# Inspect the calculated distances
+distances
+```
+```{r}
+# Recreate the sf object with the correct CRS and geometry
+samples_clean <- st_as_sf(samples, coords = c("x", "y"), crs = st_crs(network))
+```
+
+```{r}
+densities <- nkde(network, 
+                  events = childcare,
+                  w = rep(1, nrow(childcare)),
+                  samples = samples_clean,
+                  kernel_name = "quartic",
+                  bw = 300, 
+                  div= "bw", 
+                  method = "simple",
+                  digits = 1, 
+                  tol = 1,
+                  grid_shape = c(1,1), 
+                  max_depth = 8,
+                  agg = NULL, 
+                  sparse = TRUE,
+                  verbose = FALSE
+                  )
+
+plot(densities)
+```
+
+```{r}
+samples_clean$density <- densities
+lixels$density <- densities
+```
+
+```{r}
+# rescaling to help the mapping
+samples$density <- samples_clean$density*1000
+lixels$density <- lixels$density*1000
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(lixels)+
+  tm_lines(col="density")+
+tm_shape(childcare)+
+  tm_dots()
+tmap_mode('plot')
+```
+
+Network Constrained G- and K-Function Analysis
+
+```{r}
+kfun_childcare <- kfunctions(network, 
+                             childcare,
+                             start = 0, 
+                             end = 1000, 
+                             step = 50, 
+                             width = 50, 
+                             nsim = 50, 
+                             resolution = 50,
+                             verbose = FALSE, 
+                             conf_int = 0.05)
+```
+
+```{r}
+kfun_childcare$plotk
+```

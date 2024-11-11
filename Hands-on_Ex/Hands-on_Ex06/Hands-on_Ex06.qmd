@@ -1,0 +1,154 @@
+---
+title: "Hans-on_Ex06"
+author: "XueRong"
+format: html
+---
+
+## Load necessary libraries
+```{r}
+library(pacman)
+pacman::p_load(spdep, tmap, sf, ClustGeo, ggpubr, cluster, tidyverse, GGally, geosphere)
+```
+
+## Step 1: Load Spatial and Aspatial Data
+### Load geospatial data
+```{r}
+shan_sf <- st_read("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex06/geospatial", layer = "myanmar_township_boundaries") %>%
+  filter(ST %in% c("Shan (East)", "Shan (North)", "Shan (South)")) %>%
+  select(c(2:7))
+```
+
+### Load aspatial data
+```{r}
+ict <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex06/aspatial/Shan-ICT.csv")
+```
+
+## Step 2: Data Preprocessing
+### Derive new variables
+```{r}
+ict_derived <- ict %>%
+  mutate(RADIO_PR = Radio / `Total households` * 1000) %>%
+  mutate(TV_PR = Television / `Total households` * 1000)
+```
+
+### Join spatial and aspatial data
+```{r}
+# Ensure that the key columns are named correctly in both data frames
+ict_derived <- ict_derived %>% rename(TS_PCODE = `Township Pcode`)
+
+shan_sf <- left_join(shan_sf, ict_derived, by = "TS_PCODE")
+```
+
+## Step 3: Exploratory Spatial Data Analysis
+### Visualize radio and TV prevalence rates
+```{r}
+qtm(shan_sf, "RADIO_PR")
+qtm(shan_sf, "TV_PR")
+```
+
+## Step 4: Calculate Spatial Weight Matrix
+### Define neighbors using Queen criteria
+```{r}
+nb <- poly2nb(shan_sf, queen = TRUE)
+```
+
+### Plot neighbors
+```{r}
+plot(st_geometry(shan_sf), border = 'grey')
+plot(nb, st_coordinates(st_centroid(shan_sf)), add = TRUE, col = "red")
+```
+
+### Convert neighbors list to spatial weights
+```{r}
+lw <- nb2listw(nb, style = "W", zero.policy = TRUE)
+```
+
+## Step 5: Correlation Analysis
+### Check correlations between the variables
+```{r}
+colnames(ict_derived) <- colnames(ict_derived) %>% str_replace_all("Internet at home", "Internet")
+
+shan_data <- st_drop_geometry(shan_sf) %>%
+  select(RADIO_PR, TV_PR, `Mobile phone`, Computer, `Internet at home`)
+
+ggpairs(shan_data)
+```
+
+## Step 6: Hierarchical Clustering
+### Standardize the data
+```{r}
+shan_data_std <- scale(shan_data)
+```
+
+### Compute distance matrix
+```{r}
+d <- dist(shan_data_std)
+```
+
+### Perform hierarchical clustering using Ward's method
+```{r}
+hc <- hclust(d, method = "ward.D2")
+```
+
+### Plot dendrogram
+```{r}
+plot(hc, labels = FALSE, hang = -1)
+```
+
+## Step 7: Spatial Constrained Clustering with SKATER
+### Compute minimum spanning tree (MST)
+```{r}
+listw <- nb2listw(nb, style = "B")
+graph <- mstree(lw)
+```
+
+### Prepare Data for SKATER
+```{r}
+# Use only numeric variables for clustering
+shan_data_for_skater <- st_drop_geometry(shan_sf) %>%
+  select(RADIO_PR, TV_PR, `Mobile phone`, Computer, `Internet at home`)
+```
+
+### Apply SKATER algorithm
+```{r}
+clusters <- skater(graph, shan_data_for_skater, 4) 
+```
+
+### Plot clusters
+```{r}
+plot(st_geometry(shan_sf), col = clusters$groups, border = "grey")
+```
+
+## Step 8: ClustGeo for Hybrid Clustering
+### Set parameters for ClustGeo
+```{r}
+alpha <- 0.5  # Balance between geographical and data-based clustering
+wt <- mstree(lw)
+dgeo <- as.dist(distm(st_coordinates(st_centroid(shan_sf))))
+```
+
+### Run hybrid clustering with ClustGeo
+```{r}
+res <- hclustgeo(d, dgeo, alpha = alpha)
+plot(res, labels = FALSE, hang = -1)
+```
+
+## Step 9: Determine Optimal Number of Clusters
+### Cut dendrogram at desired number of clusters
+```{r}
+k <- 5
+cutree(res, k = k)
+```
+
+## Step 10: Visualize Final Clusters
+```{r}
+shan_sf$cluster <- factor(cutree(res, k))
+qtm(shan_sf, "cluster")
+```
+
+### Final Plot of Clusters
+```{r}
+tmap_mode("view")
+tm_shape(shan_sf) +
+  tm_polygons("cluster", palette = "Set3", title = "Spatial Clusters")
+```

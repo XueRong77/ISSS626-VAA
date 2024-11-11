@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="XueRong">
+
+<title>Hands-on Exercise 05</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Hands-on_Ex05_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Hands-on_Ex05_files/libs/quarto-html/quarto.js"></script>
+<script src="Hands-on_Ex05_files/libs/quarto-html/popper.min.js"></script>
+<script src="Hands-on_Ex05_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Hands-on_Ex05_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Hands-on_Ex05_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Hands-on_Ex05_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Hands-on_Ex05_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Hands-on_Ex05_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Hands-on_Ex05_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#hands-on-exercise-05" id="toc-hands-on-exercise-05" class="nav-link active" data-scroll-target="#hands-on-exercise-05">Hands-on Exercise 05</a>
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#part-1-data-loading-and-inspection" id="toc-part-1-data-loading-and-inspection" class="nav-link" data-scroll-target="#part-1-data-loading-and-inspection">Part 1: Data Loading and Inspection</a>
+  <ul class="collapse">
+  <li><a href="#task-1-briefly-inspect-the-datasets" id="toc-task-1-briefly-inspect-the-datasets" class="nav-link" data-scroll-target="#task-1-briefly-inspect-the-datasets">Task 1: Briefly inspect the datasets</a></li>
+  </ul></li>
+  <li><a href="#part-2-data-cleaning" id="toc-part-2-data-cleaning" class="nav-link" data-scroll-target="#part-2-data-cleaning">Part 2: Data Cleaning</a>
+  <ul class="collapse">
+  <li><a href="#task-2-identify-and-handle-missing-values" id="toc-task-2-identify-and-handle-missing-values" class="nav-link" data-scroll-target="#task-2-identify-and-handle-missing-values">Task 2: Identify and handle missing values</a></li>
+  </ul></li>
+  <li><a href="#part-3-exploratory-data-analysis-eda" id="toc-part-3-exploratory-data-analysis-eda" class="nav-link" data-scroll-target="#part-3-exploratory-data-analysis-eda">Part 3: Exploratory Data Analysis (EDA)</a>
+  <ul class="collapse">
+  <li><a href="#task-3-summary-statistics" id="toc-task-3-summary-statistics" class="nav-link" data-scroll-target="#task-3-summary-statistics">Task 3: Summary Statistics</a></li>
+  <li><a href="#task-4-visualize-the-spatial-distribution" id="toc-task-4-visualize-the-spatial-distribution" class="nav-link" data-scroll-target="#task-4-visualize-the-spatial-distribution">Task 4: Visualize the Spatial Distribution</a></li>
+  </ul></li>
+  <li><a href="#part-4-data-wrangling-with-dplyr" id="toc-part-4-data-wrangling-with-dplyr" class="nav-link" data-scroll-target="#part-4-data-wrangling-with-dplyr">Part 4: Data Wrangling with dplyr</a>
+  <ul class="collapse">
+  <li><a href="#task-5-join-geospatial-and-aspatial-data" id="toc-task-5-join-geospatial-and-aspatial-data" class="nav-link" data-scroll-target="#task-5-join-geospatial-and-aspatial-data">Task 5: Join Geospatial and Aspatial Data</a></li>
+  <li><a href="#task-6-summarize-data" id="toc-task-6-summarize-data" class="nav-link" data-scroll-target="#task-6-summarize-data">Task 6: Summarize Data</a></li>
+  </ul></li>
+  <li><a href="#part-5-data-visualization-with-ggplot2" id="toc-part-5-data-visualization-with-ggplot2" class="nav-link" data-scroll-target="#part-5-data-visualization-with-ggplot2">Part 5: Data Visualization with ggplot2</a>
+  <ul class="collapse">
+  <li><a href="#task-7-choropleth-map" id="toc-task-7-choropleth-map" class="nav-link" data-scroll-target="#task-7-choropleth-map">Task 7: Choropleth Map</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Hands-on Exercise 05</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>XueRong </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="hands-on-exercise-05" class="level1">
+<h1>Hands-on Exercise 05</h1>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>In this exercise, we will focus on exploring geospatial and aspatial datasets from Hunan province. You will learn how to load, clean, and visualize geospatial data, and combine it with aspatial data to perform basic exploratory data analysis (EDA).</p>
+<p>We will be working with the following tools and packages: - R for data manipulation and analysis - ggplot2 for data visualization - sf for geospatial data handling - dplyr for data wrangling</p>
+<hr>
+</section>
+<section id="part-1-data-loading-and-inspection" class="level2">
+<h2 class="anchored" data-anchor-id="part-1-data-loading-and-inspection">Part 1: Data Loading and Inspection</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load necessary libraries</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)       </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'sf' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Linking to GEOS 3.11.0, GDAL 3.5.3, PROJ 9.1.0; sf_use_s2() is TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)  </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'ggplot2' was built under R version 4.2.3</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)    </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'dplyr' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readr)   </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Load geospatial data</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>hunan <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="at">dsn =</span> <span class="st">"/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex05/data/geospatial"</span>, <span class="at">layer =</span> <span class="st">"Hunan"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `Hunan' from data source 
+  `/Users/sharon/Library/CloudStorage/OneDrive-SingaporeManagementUniversity/ISSS626 Data/Hands-on_Ex/Hands-on_Ex05/data/geospatial' 
+  using driver `ESRI Shapefile'
+Simple feature collection with 88 features and 7 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
+Geodetic CRS:  WGS 84</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load aspatial data</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>hunan2012 <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex05/data/aspatial/Hunan_2012.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 88 Columns: 29</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr  (2): County, City
+dbl (27): avg_wage, deposite, FAI, Gov_Rev, Gov_Exp, GDP, GDPPC, GIO, Loan, ...
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># View the first few rows of the datasets</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(hunan)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 6 features and 7 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 110.4922 ymin: 28.61762 xmax: 112.3013 ymax: 30.12812
+Geodetic CRS:  WGS 84
+   NAME_2  ID_3  NAME_3   ENGTYPE_3 Shape_Leng Shape_Area  County
+1 Changde 21098 Anxiang      County   1.869074 0.10056190 Anxiang
+2 Changde 21100 Hanshou      County   2.360691 0.19978745 Hanshou
+3 Changde 21101  Jinshi County City   1.425620 0.05302413  Jinshi
+4 Changde 21102      Li      County   3.474325 0.18908121      Li
+5 Changde 21103   Linli      County   2.289506 0.11450357   Linli
+6 Changde 21104  Shimen      County   4.171918 0.37194707  Shimen
+                        geometry
+1 POLYGON ((112.0625 29.75523...
+2 POLYGON ((112.2288 29.11684...
+3 POLYGON ((111.8927 29.6013,...
+4 POLYGON ((111.3731 29.94649...
+5 POLYGON ((111.6324 29.76288...
+6 POLYGON ((110.8825 30.11675...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(hunan2012)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 29
+  County City  avg_wage deposite   FAI Gov_Rev Gov_Exp    GDP GDPPC    GIO  Loan
+  &lt;chr&gt;  &lt;chr&gt;    &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;
+1 Anhua  Yiya…    30544   10967  6832.    457.   2703  13225  14567  9277. 3955.
+2 Anren  Chen…    28058    4599. 6386.    221.   1455.  4941. 12761  4189. 2555.
+3 Anxia… Chan…    31935    5517. 3541     244.   1780. 12482  23667  5109. 2807.
+4 Baoji… Huna…    30843    2250  1005.    193.   1379.  4088. 14563  3624. 1254.
+5 Chali… Zhuz…    31251    8241. 6508.    620.   1947  11585  20078  9158. 4287.
+6 Chang… Heng…    28518   10860  7920     770.   2632. 19886  24418 37392  4243.
+# ℹ 18 more variables: NIPCR &lt;dbl&gt;, Bed &lt;dbl&gt;, Emp &lt;dbl&gt;, EmpR &lt;dbl&gt;,
+#   EmpRT &lt;dbl&gt;, Pri_Stu &lt;dbl&gt;, Sec_Stu &lt;dbl&gt;, Household &lt;dbl&gt;,
+#   Household_R &lt;dbl&gt;, NOIP &lt;dbl&gt;, Pop_R &lt;dbl&gt;, RSCG &lt;dbl&gt;, Pop_T &lt;dbl&gt;,
+#   Agri &lt;dbl&gt;, Service &lt;dbl&gt;, Disp_Inc &lt;dbl&gt;, RORP &lt;dbl&gt;, ROREmp &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<section id="task-1-briefly-inspect-the-datasets" class="level3">
+<h3 class="anchored" data-anchor-id="task-1-briefly-inspect-the-datasets">Task 1: Briefly inspect the datasets</h3>
+<ul>
+<li>How many rows and columns do the datasets contain?</li>
+<li>What are the column names and data types for each dataset?</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check the structure and summary of the geospatial data</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(hunan)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Classes 'sf' and 'data.frame':  88 obs. of  8 variables:
+ $ NAME_2    : chr  "Changde" "Changde" "Changde" "Changde" ...
+ $ ID_3      : int  21098 21100 21101 21102 21103 21104 21109 21110 21111 21112 ...
+ $ NAME_3    : chr  "Anxiang" "Hanshou" "Jinshi" "Li" ...
+ $ ENGTYPE_3 : chr  "County" "County" "County City" "County" ...
+ $ Shape_Leng: num  1.87 2.36 1.43 3.47 2.29 ...
+ $ Shape_Area: num  0.101 0.2 0.053 0.189 0.115 ...
+ $ County    : chr  "Anxiang" "Hanshou" "Jinshi" "Li" ...
+ $ geometry  :sfc_POLYGON of length 88; first list element: List of 1
+  ..$ : num [1:427, 1:2] 112 112 112 112 112 ...
+  ..- attr(*, "class")= chr [1:3] "XY" "POLYGON" "sfg"
+ - attr(*, "sf_column")= chr "geometry"
+ - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA
+  ..- attr(*, "names")= chr [1:7] "NAME_2" "ID_3" "NAME_3" "ENGTYPE_3" ...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    NAME_2               ID_3          NAME_3           ENGTYPE_3        
+ Length:88          Min.   :21098   Length:88          Length:88         
+ Class :character   1st Qu.:21125   Class :character   Class :character  
+ Mode  :character   Median :21150   Mode  :character   Mode  :character  
+                    Mean   :21150                                        
+                    3rd Qu.:21174                                        
+                    Max.   :21201                                        
+   Shape_Leng       Shape_Area         County                   geometry 
+ Min.   :0.7722   Min.   :0.02128   Length:88          POLYGON      :88  
+ 1st Qu.:2.2533   1st Qu.:0.13669   Class :character   epsg:4326    : 0  
+ Median :2.5844   Median :0.18564   Mode  :character   +proj=long...: 0  
+ Mean   :2.6057   Mean   :0.19274                                        
+ 3rd Qu.:3.0994   3rd Qu.:0.23735                                        
+ Max.   :4.5835   Max.   :0.53452                                        </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check the structure and summary of the aspatial data</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(hunan2012)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>spc_tbl_ [88 × 29] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+ $ County     : chr [1:88] "Anhua" "Anren" "Anxiang" "Baojing" ...
+ $ City       : chr [1:88] "Yiyang" "Chenzhou" "Changde" "Hunan West" ...
+ $ avg_wage   : num [1:88] 30544 28058 31935 30843 31251 ...
+ $ deposite   : num [1:88] 10967 4599 5517 2250 8241 ...
+ $ FAI        : num [1:88] 6832 6386 3541 1005 6508 ...
+ $ Gov_Rev    : num [1:88] 457 221 244 193 620 ...
+ $ Gov_Exp    : num [1:88] 2703 1455 1780 1379 1947 ...
+ $ GDP        : num [1:88] 13225 4941 12482 4088 11585 ...
+ $ GDPPC      : num [1:88] 14567 12761 23667 14563 20078 ...
+ $ GIO        : num [1:88] 9277 4189 5109 3624 9158 ...
+ $ Loan       : num [1:88] 3955 2555 2807 1254 4287 ...
+ $ NIPCR      : num [1:88] 3528 3272 7694 4191 3888 ...
+ $ Bed        : num [1:88] 2718 970 1931 927 1449 ...
+ $ Emp        : num [1:88] 494 291 336 195 330 ...
+ $ EmpR       : num [1:88] 441 255 270 146 299 ...
+ $ EmpRT      : num [1:88] 338 99.4 205.9 116.4 154 ...
+ $ Pri_Stu    : num [1:88] 54.2 33.2 19.6 19.2 33.9 ...
+ $ Sec_Stu    : num [1:88] 32.8 17.5 17.8 11.8 20.5 ...
+ $ Household  : num [1:88] 290.4 104.6 148.1 73.2 148.7 ...
+ $ Household_R: num [1:88] 234.5 121.9 135.4 69.9 139.4 ...
+ $ NOIP       : num [1:88] 101 34 53 18 106 115 214 17 55 70 ...
+ $ Pop_R      : num [1:88] 670 243 346 184 302 ...
+ $ RSCG       : num [1:88] 5761 2386 3958 768 4010 ...
+ $ Pop_T      : num [1:88] 911 389 528 281 578 ...
+ $ Agri       : num [1:88] 4942 2358 4524 1119 3794 ...
+ $ Service    : num [1:88] 5414 3814 14100 542 5444 ...
+ $ Disp_Inc   : num [1:88] 12373 16072 16610 13455 20461 ...
+ $ RORP       : num [1:88] 0.736 0.626 0.655 0.654 0.521 ...
+ $ ROREmp     : num [1:88] 0.893 0.878 0.804 0.746 0.905 ...
+ - attr(*, "spec")=
+  .. cols(
+  ..   County = col_character(),
+  ..   City = col_character(),
+  ..   avg_wage = col_double(),
+  ..   deposite = col_double(),
+  ..   FAI = col_double(),
+  ..   Gov_Rev = col_double(),
+  ..   Gov_Exp = col_double(),
+  ..   GDP = col_double(),
+  ..   GDPPC = col_double(),
+  ..   GIO = col_double(),
+  ..   Loan = col_double(),
+  ..   NIPCR = col_double(),
+  ..   Bed = col_double(),
+  ..   Emp = col_double(),
+  ..   EmpR = col_double(),
+  ..   EmpRT = col_double(),
+  ..   Pri_Stu = col_double(),
+  ..   Sec_Stu = col_double(),
+  ..   Household = col_double(),
+  ..   Household_R = col_double(),
+  ..   NOIP = col_double(),
+  ..   Pop_R = col_double(),
+  ..   RSCG = col_double(),
+  ..   Pop_T = col_double(),
+  ..   Agri = col_double(),
+  ..   Service = col_double(),
+  ..   Disp_Inc = col_double(),
+  ..   RORP = col_double(),
+  ..   ROREmp = col_double()
+  .. )
+ - attr(*, "problems")=&lt;externalptr&gt; </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan2012)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    County              City              avg_wage        deposite      
+ Length:88          Length:88          Min.   :26832   Min.   :  564.1  
+ Class :character   Class :character   1st Qu.:31480   1st Qu.: 4306.9  
+ Mode  :character   Mode  :character   Median :33070   Median : 6677.3  
+                                       Mean   :33465   Mean   : 7514.1  
+                                       3rd Qu.:34247   3rd Qu.: 9502.6  
+                                       Max.   :54540   Max.   :24332.0  
+      FAI           Gov_Rev          Gov_Exp            GDP       
+ Min.   : 1005   Min.   : 108.4   Min.   : 683.6   Min.   : 1490  
+ 1st Qu.: 3911   1st Qu.: 307.3   1st Qu.:1451.7   1st Qu.: 5844  
+ Median : 6854   Median : 455.2   Median :2037.0   Median :10483  
+ Mean   : 9021   Mean   : 646.7   Mean   :2155.9   Mean   :14931  
+ 3rd Qu.:10212   3rd Qu.: 637.3   3rd Qu.:2638.1   3rd Qu.:19131  
+ Max.   :49234   Max.   :5350.0   Max.   :7885.5   Max.   :88009  
+     GDPPC            GIO              Loan           NIPCR      
+ Min.   : 8497   Min.   :   514   Min.   :  358   Min.   : 2895  
+ 1st Qu.:14566   1st Qu.:  4965   1st Qu.: 2242   1st Qu.: 3981  
+ Median :20433   Median : 10698   Median : 3683   Median : 6119  
+ Mean   :24405   Mean   : 19227   Mean   : 4687   Mean   : 7095  
+ 3rd Qu.:27224   3rd Qu.: 22223   3rd Qu.: 5082   3rd Qu.: 9768  
+ Max.   :88656   Max.   :148976   Max.   :40534   Max.   :17070  
+      Bed            Emp              EmpR           EmpRT      
+ Min.   : 392   Min.   : 73.65   Min.   : 62.0   Min.   : 33.6  
+ 1st Qu.:1111   1st Qu.:231.56   1st Qu.:191.2   1st Qu.:105.5  
+ Median :1642   Median :363.79   Median :284.2   Median :171.2  
+ Mean   :1765   Mean   :388.71   Mean   :316.4   Mean   :190.4  
+ 3rd Qu.:2240   3rd Qu.:525.04   3rd Qu.:433.5   3rd Qu.:263.5  
+ Max.   :6225   Max.   :919.62   Max.   :757.6   Max.   :451.6  
+    Pri_Stu          Sec_Stu         Household       Household_R    
+ Min.   :  5.91   Min.   : 3.201   Min.   : 27.15   Min.   : 30.40  
+ 1st Qu.: 24.09   1st Qu.:15.095   1st Qu.: 99.15   1st Qu.: 87.95  
+ Median : 36.85   Median :24.834   Median :162.85   Median :152.85  
+ Mean   : 43.08   Mean   :27.609   Mean   :175.04   Mean   :159.62  
+ 3rd Qu.: 58.26   3rd Qu.:36.248   3rd Qu.:245.32   3rd Qu.:218.22  
+ Max.   :112.20   Max.   :68.853   Max.   :391.70   Max.   :369.80  
+      NOIP           Pop_R            RSCG             Pop_T       
+ Min.   : 10.0   Min.   : 57.7   Min.   :  354.5   Min.   :  92.3  
+ 1st Qu.: 47.0   1st Qu.:227.3   1st Qu.: 1757.2   1st Qu.: 333.1  
+ Median : 80.5   Median :348.7   Median : 3437.8   Median : 572.5  
+ Mean   :107.3   Mean   :369.3   Mean   : 4164.7   Mean   : 586.8  
+ 3rd Qu.:124.0   3rd Qu.:517.0   3rd Qu.: 5630.2   3rd Qu.: 792.0  
+ Max.   :733.0   Max.   :834.1   Max.   :22604.0   Max.   :1285.5  
+      Agri            Service           Disp_Inc           RORP       
+ Min.   :  527.2   Min.   :    5.2   Min.   : 11954   Min.   :0.2357  
+ 1st Qu.: 2255.3   1st Qu.: 1576.1   1st Qu.: 14966   1st Qu.:0.5968  
+ Median : 3700.7   Median : 5932.5   Median : 18542   Median :0.6517  
+ Mean   : 4705.9   Mean   : 8678.9   Mean   : 26133   Mean   :0.6298  
+ 3rd Qu.: 6312.9   3rd Qu.:11727.5   3rd Qu.: 21774   3rd Qu.:0.6850  
+ Max.   :18328.5   Max.   :53160.0   Max.   :183252   Max.   :0.7606  
+     ROREmp      
+ Min.   :0.4545  
+ 1st Qu.:0.7565  
+ Median :0.8300  
+ Mean   :0.8037  
+ 3rd Qu.:0.8653  
+ Max.   :0.9179  </code></pre>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="part-2-data-cleaning" class="level2">
+<h2 class="anchored" data-anchor-id="part-2-data-cleaning">Part 2: Data Cleaning</h2>
+<p>Before performing analysis, we need to ensure the datasets are clean. In this section, we will: 1. Handle missing values in the aspatial dataset. 2. Prepare the datasets for spatial analysis.</p>
+<section id="task-2-identify-and-handle-missing-values" class="level3">
+<h3 class="anchored" data-anchor-id="task-2-identify-and-handle-missing-values">Task 2: Identify and handle missing values</h3>
+<ul>
+<li>Check for missing values in the aspatial data.</li>
+<li>Decide how to handle them (remove rows, fill with mean/median, etc.).</li>
+</ul>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check for missing values in the aspatial data</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colSums</span>(<span class="fu">is.na</span>(hunan2012))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     County        City    avg_wage    deposite         FAI     Gov_Rev 
+          0           0           0           0           0           0 
+    Gov_Exp         GDP       GDPPC         GIO        Loan       NIPCR 
+          0           0           0           0           0           0 
+        Bed         Emp        EmpR       EmpRT     Pri_Stu     Sec_Stu 
+          0           0           0           0           0           0 
+  Household Household_R        NOIP       Pop_R        RSCG       Pop_T 
+          0           0           0           0           0           0 
+       Agri     Service    Disp_Inc        RORP      ROREmp 
+          0           0           0           0           0 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove rows with missing values (as an example)</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>hunan2012_clean <span class="ot">&lt;-</span> <span class="fu">na.omit</span>(hunan2012)</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify that missing values have been handled</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">colSums</span>(<span class="fu">is.na</span>(hunan2012_clean))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     County        City    avg_wage    deposite         FAI     Gov_Rev 
+          0           0           0           0           0           0 
+    Gov_Exp         GDP       GDPPC         GIO        Loan       NIPCR 
+          0           0           0           0           0           0 
+        Bed         Emp        EmpR       EmpRT     Pri_Stu     Sec_Stu 
+          0           0           0           0           0           0 
+  Household Household_R        NOIP       Pop_R        RSCG       Pop_T 
+          0           0           0           0           0           0 
+       Agri     Service    Disp_Inc        RORP      ROREmp 
+          0           0           0           0           0 </code></pre>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="part-3-exploratory-data-analysis-eda" class="level2">
+<h2 class="anchored" data-anchor-id="part-3-exploratory-data-analysis-eda">Part 3: Exploratory Data Analysis (EDA)</h2>
+<p>Now that the data is clean, perform some exploratory data analysis. We’ll focus on exploring the spatial distribution of data.</p>
+<section id="task-3-summary-statistics" class="level3">
+<h3 class="anchored" data-anchor-id="task-3-summary-statistics">Task 3: Summary Statistics</h3>
+<p>Calculate and display summary statistics for key variables in the aspatial dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get summary statistics for numerical columns in the aspatial data</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(hunan2012_clean)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    County              City              avg_wage        deposite      
+ Length:88          Length:88          Min.   :26832   Min.   :  564.1  
+ Class :character   Class :character   1st Qu.:31480   1st Qu.: 4306.9  
+ Mode  :character   Mode  :character   Median :33070   Median : 6677.3  
+                                       Mean   :33465   Mean   : 7514.1  
+                                       3rd Qu.:34247   3rd Qu.: 9502.6  
+                                       Max.   :54540   Max.   :24332.0  
+      FAI           Gov_Rev          Gov_Exp            GDP       
+ Min.   : 1005   Min.   : 108.4   Min.   : 683.6   Min.   : 1490  
+ 1st Qu.: 3911   1st Qu.: 307.3   1st Qu.:1451.7   1st Qu.: 5844  
+ Median : 6854   Median : 455.2   Median :2037.0   Median :10483  
+ Mean   : 9021   Mean   : 646.7   Mean   :2155.9   Mean   :14931  
+ 3rd Qu.:10212   3rd Qu.: 637.3   3rd Qu.:2638.1   3rd Qu.:19131  
+ Max.   :49234   Max.   :5350.0   Max.   :7885.5   Max.   :88009  
+     GDPPC            GIO              Loan           NIPCR      
+ Min.   : 8497   Min.   :   514   Min.   :  358   Min.   : 2895  
+ 1st Qu.:14566   1st Qu.:  4965   1st Qu.: 2242   1st Qu.: 3981  
+ Median :20433   Median : 10698   Median : 3683   Median : 6119  
+ Mean   :24405   Mean   : 19227   Mean   : 4687   Mean   : 7095  
+ 3rd Qu.:27224   3rd Qu.: 22223   3rd Qu.: 5082   3rd Qu.: 9768  
+ Max.   :88656   Max.   :148976   Max.   :40534   Max.   :17070  
+      Bed            Emp              EmpR           EmpRT      
+ Min.   : 392   Min.   : 73.65   Min.   : 62.0   Min.   : 33.6  
+ 1st Qu.:1111   1st Qu.:231.56   1st Qu.:191.2   1st Qu.:105.5  
+ Median :1642   Median :363.79   Median :284.2   Median :171.2  
+ Mean   :1765   Mean   :388.71   Mean   :316.4   Mean   :190.4  
+ 3rd Qu.:2240   3rd Qu.:525.04   3rd Qu.:433.5   3rd Qu.:263.5  
+ Max.   :6225   Max.   :919.62   Max.   :757.6   Max.   :451.6  
+    Pri_Stu          Sec_Stu         Household       Household_R    
+ Min.   :  5.91   Min.   : 3.201   Min.   : 27.15   Min.   : 30.40  
+ 1st Qu.: 24.09   1st Qu.:15.095   1st Qu.: 99.15   1st Qu.: 87.95  
+ Median : 36.85   Median :24.834   Median :162.85   Median :152.85  
+ Mean   : 43.08   Mean   :27.609   Mean   :175.04   Mean   :159.62  
+ 3rd Qu.: 58.26   3rd Qu.:36.248   3rd Qu.:245.32   3rd Qu.:218.22  
+ Max.   :112.20   Max.   :68.853   Max.   :391.70   Max.   :369.80  
+      NOIP           Pop_R            RSCG             Pop_T       
+ Min.   : 10.0   Min.   : 57.7   Min.   :  354.5   Min.   :  92.3  
+ 1st Qu.: 47.0   1st Qu.:227.3   1st Qu.: 1757.2   1st Qu.: 333.1  
+ Median : 80.5   Median :348.7   Median : 3437.8   Median : 572.5  
+ Mean   :107.3   Mean   :369.3   Mean   : 4164.7   Mean   : 586.8  
+ 3rd Qu.:124.0   3rd Qu.:517.0   3rd Qu.: 5630.2   3rd Qu.: 792.0  
+ Max.   :733.0   Max.   :834.1   Max.   :22604.0   Max.   :1285.5  
+      Agri            Service           Disp_Inc           RORP       
+ Min.   :  527.2   Min.   :    5.2   Min.   : 11954   Min.   :0.2357  
+ 1st Qu.: 2255.3   1st Qu.: 1576.1   1st Qu.: 14966   1st Qu.:0.5968  
+ Median : 3700.7   Median : 5932.5   Median : 18542   Median :0.6517  
+ Mean   : 4705.9   Mean   : 8678.9   Mean   : 26133   Mean   :0.6298  
+ 3rd Qu.: 6312.9   3rd Qu.:11727.5   3rd Qu.: 21774   3rd Qu.:0.6850  
+ Max.   :18328.5   Max.   :53160.0   Max.   :183252   Max.   :0.7606  
+     ROREmp      
+ Min.   :0.4545  
+ 1st Qu.:0.7565  
+ Median :0.8300  
+ Mean   :0.8037  
+ 3rd Qu.:0.8653  
+ Max.   :0.9179  </code></pre>
+</div>
+</div>
+</section>
+<section id="task-4-visualize-the-spatial-distribution" class="level3">
+<h3 class="anchored" data-anchor-id="task-4-visualize-the-spatial-distribution">Task 4: Visualize the Spatial Distribution</h3>
+<p>Create visualizations to understand the spatial distribution of the data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot the spatial distribution of the Hunan geospatial dataset</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="at">data =</span> hunan) <span class="sc">+</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>() <span class="sc">+</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">'Spatial Distribution of Hunan Region'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Hands-on_Ex05_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="part-4-data-wrangling-with-dplyr" class="level2">
+<h2 class="anchored" data-anchor-id="part-4-data-wrangling-with-dplyr">Part 4: Data Wrangling with dplyr</h2>
+<p>Use <code>dplyr</code> to filter, mutate, and summarize data. We’ll link the geospatial and aspatial datasets.</p>
+<section id="task-5-join-geospatial-and-aspatial-data" class="level3">
+<h3 class="anchored" data-anchor-id="task-5-join-geospatial-and-aspatial-data">Task 5: Join Geospatial and Aspatial Data</h3>
+<p>Join the <code>hunan</code> geospatial dataset with the <code>hunan2012_clean</code> aspatial dataset based on a common column (e.g., region name).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: Perform a left join on the datasets based on the region name or a common key</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>hunan_combined <span class="ot">&lt;-</span> hunan <span class="sc">%&gt;%</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(hunan2012_clean, <span class="at">by =</span> <span class="st">"County"</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co"># View the combined data</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(hunan_combined)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 6 features and 35 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 110.4922 ymin: 28.61762 xmax: 112.3013 ymax: 30.12812
+Geodetic CRS:  WGS 84
+   NAME_2  ID_3  NAME_3   ENGTYPE_3 Shape_Leng Shape_Area  County    City
+1 Changde 21098 Anxiang      County   1.869074 0.10056190 Anxiang Changde
+2 Changde 21100 Hanshou      County   2.360691 0.19978745 Hanshou Changde
+3 Changde 21101  Jinshi County City   1.425620 0.05302413  Jinshi Changde
+4 Changde 21102      Li      County   3.474325 0.18908121      Li Changde
+5 Changde 21103   Linli      County   2.289506 0.11450357   Linli Changde
+6 Changde 21104  Shimen      County   4.171918 0.37194707  Shimen Changde
+  avg_wage deposite     FAI Gov_Rev Gov_Exp     GDP GDPPC     GIO   Loan  NIPCR
+1    31935   5517.2  3541.0  243.64  1779.5 12482.0 23667  5108.9 2806.9 7693.7
+2    32265   7979.0  8665.0  386.13  2062.4 15788.0 20981 13491.0 4550.0 8269.9
+3    28692   4581.7  4777.0  373.31  1148.4  8706.9 34592 10935.0 2242.0 8169.9
+4    32541  13487.0 16066.0  709.61  2459.5 20322.0 24473 18402.0 6748.0 8377.0
+5    32667    564.1  7781.2  336.86  1538.7 10355.0 25554  8214.0  358.0 8143.1
+6    33261   8334.4 10531.0  548.33  2178.8 16293.0 27137 17795.0 6026.5 6156.0
+   Bed    Emp  EmpR EmpRT Pri_Stu Sec_Stu Household Household_R NOIP Pop_R
+1 1931 336.39 270.5 205.9  19.584  17.819     148.1       135.4   53 346.0
+2 2560 456.78 388.8 246.7  42.097  33.029     240.2       208.7   95 553.2
+3  848 122.78  82.1  61.7   8.723   7.592      81.9        43.7   77  92.4
+4 2038 513.44 426.8 227.1  38.975  33.938     268.5       256.0   96 539.7
+5 1440 307.36 272.2 100.8  23.286  18.943     129.1       157.2   99 246.6
+6 2502 392.05 329.6 193.8  29.245  26.104     190.6       184.7  122 399.2
+    RSCG Pop_T    Agri Service Disp_Inc      RORP    ROREmp
+1 3957.9 528.3 4524.41   14100    16610 0.6549309 0.8041262
+2 4460.5 804.6 6545.35   17727    18925 0.6875466 0.8511756
+3 3683.0 251.8 2562.46    7525    19498 0.3669579 0.6686757
+4 7110.2 832.5 7562.34   53160    18985 0.6482883 0.8312558
+5 3604.9 409.3 3583.91    7031    18604 0.6024921 0.8856065
+6 6490.7 600.5 5266.51    6981    19275 0.6647794 0.8407091
+                        geometry
+1 POLYGON ((112.0625 29.75523...
+2 POLYGON ((112.2288 29.11684...
+3 POLYGON ((111.8927 29.6013,...
+4 POLYGON ((111.3731 29.94649...
+5 POLYGON ((111.6324 29.76288...
+6 POLYGON ((110.8825 30.11675...</code></pre>
+</div>
+</div>
+</section>
+<section id="task-6-summarize-data" class="level3">
+<h3 class="anchored" data-anchor-id="task-6-summarize-data">Task 6: Summarize Data</h3>
+<p>Summarize the data to find the mean, median, and count of a particular variable (e.g., population, income).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Summarize the data by a grouping variable (e.g., region)</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>summarized_data <span class="ot">&lt;-</span> hunan_combined <span class="sc">%&gt;%</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(County) <span class="sc">%&gt;%</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">mean_income =</span> <span class="fu">mean</span>(avg_wage, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="co"># View the summarized data</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>summarized_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 88 features and 2 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812
+Geodetic CRS:  WGS 84
+# A tibble: 88 × 3
+   County    mean_income                                                geometry
+   &lt;chr&gt;           &lt;dbl&gt;                                           &lt;POLYGON [°]&gt;
+ 1 Anhua           30544 ((111.603 28.63946, 111.6001 28.63997, 111.5957 28.638…
+ 2 Anren           28058 ((113.1716 26.82807, 113.1688 26.82901, 113.1639 26.83…
+ 3 Anxiang         31935 ((112.0608 29.76031, 112.0602 29.76537, 112.0598 29.77…
+ 4 Baojing         30843 ((109.7009 28.83019, 109.7001 28.83364, 109.6996 28.83…
+ 5 Chaling         31251 ((113.7685 27.11099, 113.7688 27.11442, 113.7686 27.11…
+ 6 Changning       28518 ((112.6115 26.6039, 112.6064 26.60362, 112.6009 26.602…
+ 7 Changsha        54540 ((112.9418 28.03516, 112.9427 28.03147, 112.9431 28.02…
+ 8 Chengbu         28597 ((110.4426 26.69583, 110.4415 26.6991, 110.4382 26.704…
+ 9 Chenxi          33580 ((110.2577 28.22052, 110.2525 28.2212, 110.2474 28.218…
+10 Cili            33099 ((110.8777 29.69041, 110.868 29.6909, 110.8643 29.6922…
+# ℹ 78 more rows</code></pre>
+</div>
+</div>
+<hr>
+</section>
+</section>
+<section id="part-5-data-visualization-with-ggplot2" class="level2">
+<h2 class="anchored" data-anchor-id="part-5-data-visualization-with-ggplot2">Part 5: Data Visualization with ggplot2</h2>
+<p>Create more complex visualizations to explore relationships between variables.</p>
+<section id="task-7-choropleth-map" class="level3">
+<h3 class="anchored" data-anchor-id="task-7-choropleth-map">Task 7: Choropleth Map</h3>
+<p>Create a choropleth map to visualize a variable (e.g., income or population) across regions in Hunan.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(hunan_combined) <span class="sc">+</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> avg_wage)) <span class="sc">+</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() <span class="sc">+</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">'Choropleth Map of Average Wage in Hunan Regions'</span>, <span class="at">fill =</span> <span class="st">'Average Wage'</span>) <span class="sc">+</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Hands-on_Ex05_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<hr>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,214 @@
+---
+title: "In_class_Ex04"
+---
+
+# Overview
+
+In this hands-on exercise, we will compute and visualize spatial weights in R using geospatial data. We will focus on contiguity-based (Queen and Rook) and distance-based spatial weights matrices, as well as using geographically weighted models to generate summary statistics.
+
+## Prerequisites
+
+We will use the following R packages:
+
+```{r}
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+pacman::p_load(sf, spdep, tmap, tidyverse, knitr, GWmodel)
+```
+
+## 1. Load the Data
+
+### Import Shapefile into R
+
+```{r}
+hunan <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex04/data/geospatial", layer = "Hunan")
+```
+
+### Import CSV Data and Join with Shapefile
+
+```{r}
+hunan2012 <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex04/data/aspatial/Hunan_2012.csv")
+hunan <- left_join(hunan, hunan2012, by = "County")  
+```
+
+## 2. Compute Contiguity-based Spatial Weights
+
+### Queen-based Contiguity
+
+```{r}
+wm_q <- poly2nb(hunan, queen = TRUE)
+summary(wm_q)
+```
+
+### Rook-based Contiguity
+
+```{r}
+wm_r <- poly2nb(hunan, queen = FALSE)
+summary(wm_r)
+```
+
+## 3. Visualizing Spatial Weights
+
+### Extract Centroids of Polygons
+
+```{r}
+coords <- st_coordinates(st_centroid(hunan))
+```
+
+### Plot Queen-based Contiguity Weights
+
+```{r}
+tmap_mode("plot")
+
+wm_q_lines <- nb2lines(wm_q, coords = coords, as_sf = TRUE)
+
+tm_shape(hunan) +
+  tm_borders() +
+  tm_shape(wm_q_lines) +
+  tm_lines(col = "blue", lwd = 1) +
+  tm_shape(hunan) +
+  tm_dots(col = "red", size = 0.3) +
+  tm_layout(title = "Queen-Based Contiguity Weights Visualization",
+            legend.outside = TRUE)
+
+
+
+
+```
+
+### Plot Rook-based Contiguity Weights
+
+```{r}
+tmap_mode("plot")
+
+wm_r_lines <- nb2lines(wm_r, coords = coords, as_sf = TRUE)
+
+st_crs(wm_r_lines) <- st_crs(hunan)
+
+coords_sf <- st_as_sf(data.frame(coords), coords = c("X", "Y"), crs = st_crs(hunan))
+
+tm_shape(hunan) +
+  tm_borders() +
+  tm_shape(wm_r_lines) +
+  tm_lines(col = "blue", lwd = 1) +
+  tm_shape(coords_sf) +
+  tm_dots(col = "red", size = 0.3) +
+  tm_layout(title = "Rook-Based Contiguity Weights",
+            main.title.size = 1.5,
+            legend.outside = TRUE)
+
+
+```
+
+## 4. Mapping GDP Per Capita
+
+### Create Choropleth Map of GDPPC
+
+```{r}
+qtm(hunan, fill = "GDPPC")
+```
+
+## 5. Converting to SpatialPolygonDataFrame
+
+### Convert `sf` to `Spatial` for GWmodel Compatibility
+
+```{r}
+hunan_sp <- as_Spatial(hunan)
+```
+
+## 6. Geographically Weighted Summary Statistics
+
+### Determine Adaptive Bandwidth using AIC
+
+```{r}
+bw_AIC <- bw.gwr(GDPPC ~ 1, data = hunan_sp, approach = "AIC", adaptive = TRUE, kernel = "bisquare", longlat = TRUE)
+bw_AIC
+```
+
+### Compute Geographically Weighted Summary Statistics (Adaptive Bandwidth)
+
+```{r}
+gwstat <- gwss(data = hunan_sp, vars = "GDPPC", bw = bw_AIC, kernel = "bisquare", adaptive = TRUE, longlat = TRUE)
+```
+
+### Prepare Output Data (Adaptive Bandwidth)
+
+```{r}
+gwstat_df <- as.data.frame(gwstat$SDF)
+hunan_gstat <- cbind(hunan, gwstat_df)
+```
+
+### Visualize Geographically Weighted Summary Statistics (Adaptive Bandwidth)
+
+```{r}
+tm_shape(hunan_gstat) +
+  tm_fill("GDPPC_LM", n = 5, style = "quantile") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Distribution of Geographically Weighted Mean",
+            main.title.position = "center",
+            main.title.size = 2.0,
+            legend.text.size = 1.2,
+            legend.height = 1.50, 
+            legend.width = 1.50,
+            frame = TRUE)
+```
+
+## 7. Fixed Bandwidth Analysis
+
+### Determine Fixed Bandwidth using Cross-Validation and AIC
+
+```{r}
+# Cross-Validation Approach
+bw_CV_fixed <- bw.gwr(GDPPC ~ 1, data = hunan_sp, approach = "CV", adaptive = FALSE, kernel = "bisquare", longlat = TRUE)
+bw_CV_fixed
+
+# AIC Approach
+bw_AIC_fixed <- bw.gwr(GDPPC ~ 1, data = hunan_sp, approach = "AIC", adaptive = FALSE, kernel = "bisquare", longlat = TRUE)
+bw_AIC_fixed
+```
+
+### Compute Geographically Weighted Summary Statistics (Fixed Bandwidth)
+
+```{r}
+gwstat_fixed <- gwss(data = hunan_sp, vars = "GDPPC", bw = bw_AIC_fixed, kernel = "bisquare", adaptive = FALSE, longlat = TRUE)
+```
+
+### Prepare Output Data (Fixed Bandwidth)
+
+```{r}
+gwstat_fixed_df <- as.data.frame(gwstat_fixed$SDF)
+hunan_gstat_fixed <- cbind(hunan, gwstat_fixed_df)
+```
+
+### Visualize Geographically Weighted Summary Statistics (Fixed Bandwidth)
+
+```{r}
+tm_shape(hunan_gstat_fixed) +
+  tm_fill("GDPPC_LM", n = 5, style = "quantile") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Distribution of Geographically Weighted Mean (Fixed Bandwidth)",
+            main.title.position = "center",
+            main.title.size = 2.0,
+            legend.text.size = 1.2,
+            legend.height = 1.50, 
+            legend.width = 1.50,
+            frame = TRUE)
+```
+
+## 8. Visualizing Local Correlation
+
+### Visualize Geographically Weighted Correlation Coefficients
+
+```{r}
+tm_shape(hunan_gstat) +
+  tm_fill("GDPPC_LSKe", n = 5, style = "quantile") +
+  tm_borders(alpha = 0.5) +
+  tm_layout(main.title = "Local Spearman Rho",
+            main.title.position = "center",
+            main.title.size = 2.0,
+            legend.text.size = 1.2,
+            legend.height = 1.50, 
+            legend.width = 1.50,
+            frame = TRUE)
+```

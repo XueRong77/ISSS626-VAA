@@ -1,0 +1,197 @@
+---
+title: "Hand-on_Ex08"
+author: "XueRong"
+---
+
+# Introduction
+
+This analysis aims to demonstrate predictive modeling using Geographically Weighted Regression (GWR) and Geographic Random Forest (GRF) techniques in R. The document will guide you through building, calibrating, and interpreting predictive models with geospatial data.
+
+## Libraries Setup
+
+Make sure to load the following libraries:
+
+```{r}
+pacman::p_load(sf, spdep, GWmodel, SpatialML, tmap, rsample, Metrics, tidyverse, spgwr)
+```
+
+## Data Preparation
+
+Load the required datasets and prepare for analysis:
+
+```{r}
+# Load model data
+mdata <- read_rds("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex08/data/mdata.rds")
+
+# Inspect the dataset
+glimpse(mdata)
+
+mdata$resale_price <- as.numeric(mdata$resale_price)
+
+# Generate coordinates and add them to the data
+coords <- st_coordinates(st_centroid(mdata))
+mdata$X <- coords[,1]
+mdata$Y <- coords[,2]
+```
+
+### Data Sampling
+
+Split the data into training and test datasets:
+
+```{r}
+# Data split for training and testing
+set.seed(1234)
+resale_split <- initial_split(mdata, prop = 0.65)
+train_data <- training(resale_split)
+test_data <- testing(resale_split)
+
+write_rds(train_data, "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex08/data/train_data.rds")
+write_rds(test_data, "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex08/data/test_data.rds")
+
+mdata_sp <- as_Spatial(mdata)
+```
+
+## Exploratory Analysis
+
+Before performing the GWR, examine the spatial relationships and dependencies in the data:
+
+```{r}
+# Check for spatial autocorrelation based on available geometries
+if (any(st_is(mdata, c("POLYGON", "MULTIPOLYGON")))) {
+  message('Polygon geometries found. Using polygon-based neighborhood analysis.')
+  listw <- nb2listw(poly2nb(st_as_sf(mdata), queen = TRUE))
+} else {
+  message('Polygon geometries not found. Using point-based neighborhood analysis.')
+  coords <- st_coordinates(st_centroid(mdata))
+  listw <- nb2listw(knn2nb(knearneigh(coords, k = 5)))
+}
+
+# Moran's I Test for Global Spatial Autocorrelation
+moran.test(as.numeric(mdata[['resale_price']]), listw)
+
+```
+
+## Geographically Weighted Regression (GWR)
+
+GWR helps to model spatial variability by estimating local relationships. We will fit a GWR model using the `gwr` function from the `spgwr` package.
+
+```{r}
+# Set up bandwidth for GWR using Spatial*DataFrame
+bw <- GWmodel::bw.gwr(formula = resale_price ~ floor_area_sqm + remaining_lease_mths + PROX_CBD, 
+                      data = mdata_sp, approach = 'AIC', kernel = 'bisquare', adaptive = TRUE)
+
+# Fit the GWR model using Spatial*DataFrame
+gwr_model <- GWmodel::gwr.basic(formula = resale_price ~ floor_area_sqm + remaining_lease_mths + PROX_CBD, 
+                                data = mdata_sp, bw = bw, kernel = 'gaussian', adaptive = TRUE)
+
+# Summary of the GWR model
+summary(gwr_model)
+```
+
+## Visualizing GWR Results
+
+Use thematic maps to illustrate the variation in local coefficients:
+
+```{r}
+# Extract local coefficient values from the model
+mdata_sp$gwr_coeff <- gwr_model$SDF$floor_area_sqm
+
+# Convert Spatial*DataFrame back to sf for visualization
+mdata <- st_as_sf(mdata_sp)
+
+# Visualize the local coefficients using points instead of polygons
+tmap_mode("view")
+
+# Map of GWR Coefficients
+tm_shape(mdata) +
+  tm_dots("gwr_coeff", style = "quantile", title = "GWR Coefficient for Floor Area (sqm)")
+
+```
+
+## Building a Non-Spatial Multiple Linear Regression
+
+Construct a non-spatial multiple linear regression model for comparison:
+
+```{r}
+# Fit a multiple linear regression model
+price_mlr <- lm(resale_price ~ floor_area_sqm + remaining_lease_mths + PROX_CBD, data = train_data)
+summary(price_mlr)
+
+# Save the model
+write_rds(price_mlr, "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex08/data/price_mlr.rds")
+```
+
+## Geographical Random Forest (GRF)
+
+Use GRF to predict HDB resale prices and evaluate spatial variability:
+
+```{r}
+# Install the ranger package if it's not already installed
+if (!requireNamespace("ranger", quietly = TRUE)) {
+  install.packages("ranger")
+}
+
+# Load the library
+library(ranger)
+
+
+# Ensure train_data is in sf format before extracting coordinates
+train_data_sf <- training(resale_split)  # This keeps train_data as an sf object
+
+# Extract coordinates before dropping geometry
+coords_train <- st_coordinates(st_centroid(train_data_sf))
+
+# Drop the geometry column to prepare the training data for modeling
+train_data_no_geom <- train_data_sf %>% st_drop_geometry()
+
+# Fit a Random Forest model using ranger
+rf_model <- ranger(formula = resale_price ~ floor_area_sqm + remaining_lease_mths + PROX_CBD,
+                   data = train_data_no_geom,  # Use the dataset without geometry
+                   num.trees = 500,            # Set the number of trees
+                   mtry = 3,                   # Number of variables to possibly split at in each node
+                   importance = 'impurity')    # To get the importance of the variables
+
+# Save the Random Forest model
+write_rds(rf_model, "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Hands-on_Ex/Hands-on_Ex08/data/rf_model.rds")
+
+# Print model summary
+print(rf_model)
+```
+
+## Interpretation of Results
+
+-   The GWR coefficients map shows where the relationship between `resale_price` and `floor_area_sqm` is strongest and weakest.
+-   Areas with positive coefficients indicate a positive relationship between the predictor and the response variable.
+-   The GWR model has an Adjusted R-squared of **0.6524**, while the Random Forest model has an Out-of-Bag R-squared of approximately **0.90**, indicating better performance for capturing variance in the Random Forest model.
+-   Residual analysis and further model comparison are recommended to understand local patterns and potential spatial non-stationarity. \### Model Comparison Code and Visualizations
+
+```{r}
+# Plotting Variable Importance for Random Forest
+importance <- rf_model$variable.importance
+importance_df <- data.frame(Variable = names(importance), Importance = importance)
+
+# Bar plot of variable importance
+library(ggplot2)
+ggplot(importance_df, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  labs(title = "Variable Importance from Random Forest Model", x = "Variables", y = "Importance")
+```
+
+```{r}
+# Residual Mapping for GWR
+# Extract residuals from the GWR model
+mdata_sp$residuals <- gwr_model$lm$residuals
+
+# Convert to sf object for visualization
+mdata <- st_as_sf(mdata_sp)
+
+# Map residuals to identify spatial patterns
+tmap_mode("view")
+tm_shape(mdata) +
+  tm_dots("residuals", style = "quantile", title = "GWR Residuals")
+```
+
+## Conclusion
+
+Geographically Weighted Regression and Geographic Random Forest reveal spatial variability that cannot be captured through global models. These approaches provide critical insights into spatial dependencies and improve the accuracy of predictive modeling in geographically distributed data.

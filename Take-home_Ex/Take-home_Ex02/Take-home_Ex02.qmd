@@ -1,0 +1,297 @@
+---
+title: "COVID-19 Impacts on Thailand Tourism: A Geospatial Analysis in R"
+author: "XueRong"
+---
+
+## Introduction
+
+This analysis investigates the impact of COVID-19 on Thailand's tourism economy at the province level using spatial and spatio-temporal statistics. The goal is to explore patterns in tourist arrival data and detect any spatial clusters, hotspots, and changes over time.
+
+## Data Description
+
+### Shapefiles
+
+We have multiple shapefiles representing different administrative levels:
+
+-   **gdf0**: National boundary of Thailand (`ADM0_EN`, `ADM0_TH`).
+-   **gdf1**: Provincial boundaries (`ADM1_EN`, `ADM1_TH`).
+-   **gdf2**: District boundaries (`ADM2_EN`, `ADM2_TH`).
+-   **gdf3**: Sub-district boundaries (`ADM3_EN`, `ADM3_TH`).
+-   **gdf**: LINESTRING data representing coastal or transportation routes.
+
+### Tourism Data
+
+The tourism data file (`thailand_domestic_tourism_2019_2023_ver2.csv`) contains the following fields: - `date`: The year of the data. - `province_eng`: Province name in English. - `province_thai`: Province name in Thai. - `region_eng`: Region name in English. - `region_thai`: Region name in Thai. - `variable`: The variable being measured (e.g., tourist arrivals). - `value`: The value of the measured variable.
+
+## Libraries
+
+```{r}
+# Load necessary libraries
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(spdep)
+library(tmap)
+library(leaflet)
+library(reshape2)
+library(stats)
+library(cluster)
+library(tidyr)
+```
+
+## Data Loading
+
+We load the shapefile for Thailand's administrative boundaries and the tourism dataset.
+
+```{r}
+# Load shapefile (Thailand provinces) and tourism data
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbndl_admALL_rtsd_itos_20220121.shp'
+gdf <- st_read(shapefile_path)
+head(gdf)
+```
+
+```{r}
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbnda_adm0_rtsd_20220121.shp'
+gdf0 <- st_read(shapefile_path)
+head(gdf0)
+```
+
+```{r}
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbnda_adm1_rtsd_20220121.shp'
+gdf1 <- st_read(shapefile_path)
+head(gdf1)
+```
+
+```{r}
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbnda_adm2_rtsd_20220121.shp'
+gdf2 <- st_read(shapefile_path)
+head(gdf2)
+```
+
+```{r}
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbnda_adm3_rtsd_20220121.shp'
+gdf3 <- st_read(shapefile_path)
+head(gdf3)
+```
+
+# Load tourism dataset
+
+```{r}
+tourism_data_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/thailand_domestic_tourism_2019_2023_ver2.csv'
+tourism_df <- read.csv(tourism_data_path)
+head(tourism_df)
+```
+
+## Data Preparation
+
+We will merge the tourism data with the province-level shapefile using the province names in English.
+
+The current dataset uses the first day of each month to represent the date, so we will extract the year and month to perform the analysis.
+
+```{r}
+# Convert the 'date' column to Date format if it's not already
+tourism_df$date <- as.Date(tourism_df$date, format = "%Y-%m-%d")
+
+# Extract year and month from the date
+tourism_df$year <- format(tourism_df$date, "%Y")
+tourism_df$month <- format(tourism_df$date, "%m")
+
+# Merge the datasets on province name
+merged_data <- merge(gdf1, tourism_df, by.x = "ADM1_EN", by.y = "province_eng")
+
+# Display the first few rows of the merged data
+head(merged_data)
+```
+
+## Exploratory Data Analysis
+
+We will visualize the distribution of tourist arrivals across provinces using an interactive map.
+
+```{r}
+# Create a choropleth map to visualize tourist arrivals across provinces
+tmap_mode("view") # Interactive map mode
+tm_shape(merged_data) +
+  tm_polygons("value", palette = "OrRd", title = "Tourist Arrivals (2019-2023)") +
+  tm_layout(title = "Tourist Arrivals by Province in Thailand")
+
+# Create an interactive map using Leaflet
+leaflet(merged_data) %>%
+  addTiles() %>%
+  addPolygons(fillColor = ~colorNumeric("viridis", merged_data$value)(value),
+              color = "#BDBDC3",
+              fillOpacity = 0.7,
+              weight = 1) %>%
+  addLegend(pal = colorNumeric("viridis", merged_data$value),
+            values = merged_data$value,
+            title = "Tourist Arrivals")
+```
+
+## Spatial Analysis Moran’s I
+
+We will calculate Moran’s I to detect spatial clustering of tourist arrivals.
+
+```{r}
+# Create spatial weights matrix using Queen's method
+nb <- poly2nb(merged_data)
+lw <- nb2listw(nb, style = "W")
+
+# Moran's I test
+moran_test <- moran.test(merged_data$value, lw)
+
+# Print Moran's I test results
+moran_test
+```
+
+Key Results:
+
+```         
+•   Moran’s I Statistic: -0.0025
+•   p-value: 0.5
+•   Variance: 8.712666e-17
+```
+
+Interpretation:
+
+```         
+•   A Moran’s I statistic close to zero indicates no significant spatial autocorrelation.
+•   The p-value of 0.5 suggests that the observed spatial pattern is likely due to random distribution rather than significant clustering or dispersion.
+```
+
+Conclusion:
+
+The results indicate that tourist arrivals are randomly distributed across provinces, with no statistically significant spatial clustering observed in the data.
+
+### Getis-Ord Gi\* Analysis
+
+We will conduct the Getis-Ord Gi\* analysis to identify hot and cold spots of tourist arrivals.
+
+```{r}
+# Create spatial weights matrix for Getis-Ord analysis
+getis_nb <- poly2nb(merged_data)
+getis_lw <- nb2listw(getis_nb, style = "W")
+
+# Calculate local Getis-Ord Gi*
+local_gi <- localG(merged_data$value, getis_lw)
+
+# Add results to the merged dataset
+merged_data$Gi_star <- local_gi
+
+# Map visualization for Getis-Ord Gi* to highlight hot and cold spots
+tmap_mode("view")
+tm_shape(merged_data) +
+  tm_polygons("Gi_star", palette = "RdYlBu", title = "Hot & Cold Spots of Tourist Arrivals") +
+  tm_layout(title = "Getis-Ord Gi* Analysis")
+```
+
+## Clustering Analysis
+
+We will perform clustering analysis to group provinces based on tourist arrival numbers to identify similarities between regions.
+
+### Hierarchical Clustering
+
+We will use hierarchical clustering to group provinces with similar tourism patterns.
+
+```{r}
+# Prepare the data for clustering
+clustering_data <- merged_data %>%
+  select(ADM1_EN, value) %>%
+  na.omit()
+
+# Scale the value column
+clustering_data_scaled <- scale(clustering_data$value)
+
+# Compute the distance matrix
+distance_matrix <- dist(clustering_data_scaled)
+
+# Perform hierarchical clustering
+hc <- hclust(distance_matrix, method = "ward.D2")
+
+# Plot the dendrogram
+plot(hc, labels = clustering_data$ADM1_EN, main = "Hierarchical Clustering of Provinces", xlab = "Province", ylab = "Height")
+```
+
+### K-Means Clustering for Temporal Trends
+
+We will use k-means clustering to identify similar temporal trends across different provinces.
+
+```{r}
+# Summarize tourism data by month and province
+tourism_monthly <- tourism_df %>%
+  group_by(province_eng, year, month) %>%
+  summarize(total_tourists = sum(value, na.rm = TRUE)) %>%
+  ungroup()
+
+# Check the structure of the resulting dataset
+head(tourism_monthly)
+```
+
+```{r}
+# Run k-means clustering to detect patterns across different months
+kmeans_result <- kmeans(tourism_monthly$total_tourists, centers = 3)
+
+# Add cluster results to the dataset
+tourism_monthly$cluster <- as.factor(kmeans_result$cluster)
+
+# Plot clustering results over time
+ggplot(tourism_monthly, aes(x = month, y = total_tourists, color = cluster)) +
+  geom_line(size = 1) +
+  labs(title = "K-means Clustering of Tourist Arrivals Over Months", x = "Month", y = "Total Tourist Arrivals")
+```
+
+## Spatio-Temporal Analysis
+
+### Time-Series Analysis
+
+We will analyze the trend of tourist arrivals over time, aggregated by year and month.
+
+```{r}
+# Group the data by year and calculate the total tourists per year
+tourism_yearly <- merged_data %>%
+  group_by(year) %>%
+  summarise(total_tourists = sum(value))
+
+# Plot tourist arrivals by year
+ggplot(tourism_yearly, aes(x = year, y = total_tourists)) +
+  geom_line(color = "blue", size = 1) +
+  labs(title = "Tourist Arrivals by Year", x = "Year", y = "Total Tourist Arrivals")
+
+# Group the data by year and month to calculate total tourists per month
+tourism_monthly1 <- merged_data %>%
+  group_by(year, month) %>%
+  summarise(total_tourists = sum(value))
+
+# Plot tourist arrivals by month
+ggplot(tourism_monthly1, aes(x = month, y = total_tourists, group = year, color = year)) +
+  geom_line(size = 1) +
+  labs(title = "Tourist Arrivals by Month", x = "Month", y = "Total Tourist Arrivals")
+```
+
+### Seasonal Heatmap
+
+We will create a heatmap to visualize seasonal trends in tourist arrivals.
+
+```{r}
+heatmap_data <- tourism_monthly1 %>%
+  pivot_wider(names_from = month, values_from = total_tourists)
+
+# Drop the geometry column
+heatmap_data_no_geom <- st_set_geometry(heatmap_data, NULL)
+
+# Melt data back into long format
+heatmap_data_long <- melt(heatmap_data_no_geom, id.vars = "year")
+
+# Rename columns for better readability
+colnames(heatmap_data_long) <- c("year", "month", "total_tourists")
+
+# Plot the heatmap
+ggplot(heatmap_data_long, aes(x = month, y = year, fill = total_tourists)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c(option = "C") +
+  labs(title = "Seasonal Heatmap of Tourist Arrivals", x = "Month", y = "Year", fill = "Arrivals") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+## Conclusion
+
+This analysis provides insights into how tourism in Thailand was impacted by COVID-19, highlighting any spatial clusters and temporal trends.

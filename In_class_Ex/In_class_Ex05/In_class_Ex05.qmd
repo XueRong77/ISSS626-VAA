@@ -1,0 +1,119 @@
+---
+title: "In_class_Ex05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Step 1: Load Required Libraries
+
+To begin, ensure that the necessary R packages are loaded.
+
+```{r}
+pacman::p_load(sf, sfdep, tmap, tidyverse)
+```
+
+## Step 2: Load Data
+
+The Hunan data sets are loaded from both a shapefile and a CSV file.
+
+```{r}
+# Load the shapefile for Hunan province
+hunan <- st_read(dsn = "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex05/geospatial", layer = "Hunan")
+
+# Load the attribute data for Hunan from a CSV file
+hunan2012 <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex05/aspatial/Hunan_2012.csv")
+```
+
+## Step 3: Merge Geospatial and Attribute Data
+
+Use a left join to combine the shapefile and attribute datasets while retaining the spatial properties.
+
+```{r}
+hunan_GDPPC <- left_join(hunan, hunan2012) %>%
+  select(1:4, 7, 15)
+```
+
+## Step 4: Plot Choropleth Map
+
+Create a choropleth map visualizing the GDP per capita distribution across counties in Hunan province.
+
+```{r}
+tmap_mode("plot")
+tm_shape(hunan_GDPPC) +
+  tm_fill("GDPPC", style = "quantile", palette = "Blues", title = "GDPPC") +
+  tm_layout(main.title = "Distribution of GDP per capita by county, Hunan Province",
+            main.title.position = "center",
+            main.title.size = 1.2,
+            legend.height = 0.45, 
+            legend.width = 0.35,
+            frame = TRUE) +
+  tm_borders(alpha = 0.5) +
+  tm_compass(type="8star", size = 2) +
+  tm_scale_bar() +
+  tm_grid(alpha =0.2)
+```
+
+## Step 5: Derive Queen's Contiguity Weights
+
+Calculate spatial weights based on Queen’s contiguity for each county.
+
+```{r}
+wm_q <- hunan_GDPPC %>%
+  mutate(nb = st_contiguity(geometry),
+         wt = st_weights(nb, style = "W"),
+         .before = 1)
+```
+
+## Step 6: Global Moran's I Calculation
+
+Compute the Moran's I statistic to identify the presence of spatial autocorrelation.
+
+```{r}
+moranI <- global_moran(wm_q$GDPPC, wm_q$nb, wm_q$wt)
+glimpse(moranI)
+```
+
+## Step 7: Local Moran's I Calculation
+
+Calculate local Moran's I and visualize clusters and outliers in the GDPPC data.
+
+```{r}
+lisa <- wm_q %>% 
+  mutate(local_moran = local_moran(GDPPC, nb, wt, nsim = 99),
+         .before = 1) %>%
+  unnest(local_moran)
+
+# Plotting the LISA map
+tmap_mode("plot")
+tm_shape(lisa) +
+  tm_fill("ii", midpoint = NA) + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8)) +
+  tm_layout(main.title = "local Moran's I of GDPPC",
+            main.title.size = 2)
+```
+
+## Step 8: Hot Spot and Cold Spot Area Analysis
+
+Perform a Hot Spot and Cold Spot Area Analysis using local Gi\* statistics.
+
+```{r}
+wm_idw <- hunan_GDPPC %>%
+  mutate(nb = include_self(st_contiguity(geometry)),
+         wts = st_inverse_distance(nb, geometry, scale = 1, alpha = 1),
+         .before = 1)
+
+HCSA <- wm_idw %>% 
+  mutate(local_Gi = local_gstar_perm(GDPPC, nb, wts, nsim = 99),
+         .before = 1) %>%
+  unnest(local_Gi)
+
+# Visualizing the hot and cold spots
+tmap_mode("plot")
+tm_shape(HCSA) +
+  tm_fill("gi_star", midpoint = NA) + 
+  tm_borders(alpha = 0.5) +
+  tm_view(set.zoom.limits = c(6,8))
+```
