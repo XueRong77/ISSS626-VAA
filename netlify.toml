@@ -3,8 +3,9 @@
     curl -LO https://quarto.org/download/latest/quarto-linux-amd64.deb && \
     mkdir -p $HOME/.local/bin && \
     dpkg-deb -x quarto-linux-amd64.deb $HOME/.local && \
-    export PATH=$PATH:$HOME/.local/usr/bin && \
+    export PATH=$HOME/.local/usr/bin:$PATH && \
     quarto render
   """
   publish = "_site"
+
 
