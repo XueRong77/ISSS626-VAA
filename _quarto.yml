@@ -1,4 +1,4 @@
-zproject:
+project:
   type: website
 
 website:
@@ -48,16 +48,17 @@ website:
           - text: "Take-home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.qmd"  
     right: 
-      - href: index.qmd
-        text: Home
-      - href: about.qmd
-        text: About
+      - text: "Home"
+        href: index.qmd
+      - text: "About"
+        href: about.qmd
 
 format:
   html:
     theme: cosmo
     css: styles.css
     toc: true
+    toc-depth: 2 
 
 editor: visual
 
