@@ -17,7 +17,6 @@ In this exercise, we will focus on exploring geospatial and aspatial datasets fr
 
 We will be working with the following tools and packages: - R for data manipulation and analysis - ggplot2 for data visualization - sf for geospatial data handling - dplyr for data wrangling
 
-
 ------------------------------------------------------------------------
 
 ## Part 1: Data Loading and Inspection
@@ -155,4 +154,3 @@ ggplot(hunan_combined) +
 ```
 
 ------------------------------------------------------------------------
-

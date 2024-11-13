@@ -73,6 +73,7 @@ samples <- st_centroid(lixel_geoms)
 plot(lixel_geoms, col = 'gray', lwd = 2)  # Plot the original line segments
 plot(samples, col = 'blue', pch = 20, add = TRUE)  # Add centroid points
 ```
+
 ```{r}
 # Extract X and Y coordinates from centroids for distance calculations
 # Convert the 'samples' (sf points) into a matrix of coordinates
@@ -85,6 +86,7 @@ distances <- sqrt(diff(centroid_coords[, "X"])^2 + diff(centroid_coords[, "Y"])^
 # Inspect the calculated distances
 distances
 ```
+
 ```{r}
 # Recreate the sf object with the correct CRS and geometry
 samples_clean <- st_as_sf(samples, coords = c("x", "y"), crs = st_crs(network))
