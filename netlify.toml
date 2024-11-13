@@ -1,8 +1,7 @@
-curl -LO https://quarto.org/download/latest/quarto-macos.tar.gz && \
-mkdir -p $HOME/.local && \
-tar -xzf quarto-macos.tar.gz -C $HOME/.local && \
-export PATH=$HOME/.local/quarto/bin:$PATH && \
-quarto render
+[build]
+command = "./install_quarto.sh"
+publish = "_site"
+
 
 
 
