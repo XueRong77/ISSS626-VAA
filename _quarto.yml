@@ -45,11 +45,11 @@ website:
         menu:
           - text: "Take-home Exercise 1"
             href: "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html"  
-          - text: "Take-home Exercise 2a"
+          - text: "Take-home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html" 
-          - text: "Take-home Exercise 2b"
+          - text: "Take-home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_1.html" 
-          - text: "Take-home Exercise 2c"
+          - text: "Take-home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_2.html"  
     right: 
       - text: "Home"
