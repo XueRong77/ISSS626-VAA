@@ -48,9 +48,9 @@ website:
           - text: "Take-home Exercise 2a"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02.html" 
           - text: "Take-home Exercise 2b"
-            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02a1.html" 
+            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_1.html" 
           - text: "Take-home Exercise 2c"
-            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02b.html"  
+            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_2.html"  
     right: 
       - text: "Home"
         href: index.html
