@@ -76,4 +76,4 @@ format:
 
 editor: visual
 
-output-dir: _site
+output-dir: docs
