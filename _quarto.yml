@@ -40,7 +40,15 @@ website:
           - text: "In-class Exercise 5"
             href: "In_class_Ex/In_class_Ex05/In_class_Ex05.html"
           - text: "In-class Exercise 6"
-            href: "In_class_Ex/In_class_Ex06/In_class_Ex06.html"  
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex06.html"
+          - text: "In-class Exercise 7"
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex07.html"
+          - text: "In-class Exercise 8"
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex08.html"
+          - text: "In-class Exercise 9"
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex09.html"
+          - text: "In-class Exercise 10"
+            href: "In_class_Ex/In_class_Ex06/In_class_Ex010.html"
       - text: "Take-home Exercises"
         menu:
           - text: "Take-home Exercise 1"
@@ -51,6 +59,8 @@ website:
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_1.html" 
           - text: "Take-home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex02_2.html"  
+          - text: "Take-home Exercise 3"
+            href: "Take-home_Ex/Take-home_Ex02/Take-home_Ex03.html"  
     right: 
       - text: "Home"
         href: index.html
