@@ -270,13 +270,6 @@ This analysis demonstrates the utility of machine learning methods such as XGBoo
 Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities, MRT stations, and other neighborhood characteristics to improve prediction accuracy even further. Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities.
 
 
----
-
-## Conclusion
-
-This analysis demonstrates the utility of geographically weighted machine learning methods for predicting HDB resale prices. By using actual resale prices and key structural features like floor area, age, and storey level, we were able to build and compare different predictive models. The GWRF model effectively captures spatial heterogeneity, potentially outperforming traditional OLS and random forest models. Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities.
-
----
 
 
 
