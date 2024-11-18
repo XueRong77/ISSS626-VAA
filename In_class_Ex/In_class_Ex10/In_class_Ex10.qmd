@@ -1,0 +1,119 @@
+---
+title: "In_class_Ex10"
+---
+
+## Load Required Packages
+First, we load the necessary R packages for data processing and spatial analysis.
+
+```{r}
+pacman::p_load(tidyverse, sf, tmap, httr, performance)
+```
+
+## Import Data
+The following code chunk imports all CSV files from the specified folder (`data/aspatial`) and combines them into a single tibble (`realis_data`).
+
+```{r}
+folder_path <- "/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex10/data"
+file_list <- list.files(path = folder_path, 
+                        pattern = "^ResidentialTransaction.*\\.csv$", 
+                        full.names = TRUE)
+
+realis_data <- file_list %>%
+  map_dfr(read_csv)
+```
+
+## Wrangle Data
+We filter the dataset to include only "Resale" transactions of condominiums, and parse the `Sale Date` column to a date format.
+
+```{r}
+condo_resale <- realis_data %>%
+  mutate(`Sale Date` = dmy(`Sale Date`)) %>%
+  filter(`Type of Sale` == "Resale" & `Property Type` == "Condominium")
+```
+
+## Geocoding
+Next, we extract the unique postal codes from the `condo_resale` dataset and geocode them using the OneMap API.
+
+```{r}
+set.seed(42)  # Setting seed for reproducibility
+sample_size <- 50  # Choose a sample size for geocoding
+postcode_sample <- sample(unique(condo_resale$`Postal Code`), sample_size)
+
+url <- "https://onemap.gov.sg/api/common/elastic/search"
+found <- data.frame()
+not_found <- data.frame()
+
+for (postcode in postcode_sample) {
+  query <- list('searchVal' = postcode, 'returnGeom' = 'Y', 
+                'getAddrDetails' = 'Y', 'pageNum' = '1')
+  
+  # Using tryCatch to handle potential errors gracefully
+  res <- tryCatch({
+    GET(url, query = query)
+  }, error = function(e) {
+    message("Error with postcode: ", postcode)
+    return(NULL)
+  })
+  
+  # If request was successful, process the result
+  if (!is.null(res) && (content(res)$found) != 0) {
+    found <- rbind(found, data.frame(content(res))[4:13])
+  } else if (!is.null(res)) {
+    not_found <- rbind(not_found, data.frame(postcode))
+  }
+  
+  # Adding a delay to avoid rate limiting
+  Sys.sleep(0.5)
+}
+```
+
+> **Note**: To improve efficiency, consider using a more vectorized approach like `purrr::map()` and add `Sys.sleep()` to handle rate limits if needed.
+
+## Tidy Field Names
+We tidy up the field names of the geocoded data to facilitate the joining process.
+
+```{r}
+found <- found %>%
+  select(c(6:8)) %>%
+  rename(POSTAL = `results.POSTAL`,
+         XCOORD = `results.X`,
+         YCOORD = `results.Y`)
+```
+
+## Join Tables and Convert to `sf` (Simple Features) Object
+We now join the geocoded data with the original dataset and convert it to an `sf` object, making it spatially enabled for mapping.
+
+```{r}
+condo_resale_geocoded <- left_join(condo_resale, found, 
+                                   by = c('Postal Code' = 'POSTAL'))
+
+# Removing rows with missing coordinates before converting to sf object
+condo_resale_geocoded <- condo_resale_geocoded %>% drop_na(XCOORD, YCOORD)
+
+condo_resale_sf <- st_as_sf(condo_resale_geocoded, 
+                            coords = c("XCOORD", "YCOORD"),
+                            crs = 3414)
+```
+
+## Cleaning Spatial Data: Checking Overlapping Point Features
+In this step, we check if there are overlapping point features and mark those as `TRUE` in a new column `overlap`.
+
+```{r}
+overlapping_points <- condo_resale_sf %>%
+  mutate(overlap = lengths(st_equals(., .)) > 1)
+```
+
+To resolve overlapping points for visualization, you can add a small jitter:
+
+```{r}
+condo_resale_sf <- condo_resale_sf %>%
+  mutate(overlap = lengths(st_equals(., .)) > 1)
+```
+
+## Visualizing Data
+```{r}
+tmap_mode("view")
+tm_shape(condo_resale_sf) +
+  tm_dots(col = "Transacted Price ($)", palette = "Blues", title = "Condo Resale Price")
+```
+---

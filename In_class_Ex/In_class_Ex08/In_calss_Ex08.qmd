@@ -1,0 +1,186 @@
+---
+title: "In_calss_Ex08"
+---
+
+# Preparing Data
+
+## Data Import
+
+
+```{r}
+library(tidyverse)
+library(sf)
+library(sp)
+
+mdata <- read_rds("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/In_class_Ex/In_class_Ex08/data/mdata.rds")
+```
+
+## Data Sampling
+
+```{r}
+library(rsample)
+
+set.seed(1234)
+resale_split <- initial_split(mdata, prop = 0.65)
+train_data <- training(resale_split)
+test_data <- testing(resale_split)
+```
+
+## Multicollinearity Check
+
+### Checking for Multicollinearity
+
+To check for multicollinearity among the independent variables, the correlation matrix is plotted using `ggcorrmat()` from the `ggstatsplot` package.
+
+```{r}
+library(ggstatsplot)
+mdata_nogeo <- mdata %>% st_drop_geometry()
+ggstatsplot::ggcorrmat(mdata_nogeo[, 2:17])
+```
+
+# Building a Non-Spatial Multiple Linear Regression Model
+
+Below is a summary of the non-spatial multiple linear regression model built on the training data.
+
+## Model Summary
+
+```{r}
+library(broom)
+library(performance)
+
+train_data_nogeom <- train_data %>%
+  st_drop_geometry()
+
+# Assuming the linear model has been fitted:
+price_mlr <- lm(resale_price ~ ., data = train_data_nogeom)
+summary(price_mlr)
+```
+
+The ANOVA and parameter estimates are summarized in the table output below.
+
+```{r}
+anova(price_mlr)
+```
+
+## Multicollinearity Check with VIF
+
+The Variance Inflation Factor (VIF) is calculated for each predictor using `performance::check_collinearity()` to further assess multicollinearity.
+
+```{r}
+library(knitr)
+library(kableExtra)
+
+vif <- performance::check_collinearity(price_mlr)
+
+kable(vif, caption = "Variance Inflation Factor (VIF) Results") %>%
+  kable_styling(font_size = 18)
+```
+
+# Predictive Modelling with Geographically Weighted Regression (GWR)
+
+## Computing Adaptive Bandwidth
+
+
+```{r}
+library(spgwr)
+library(GWmodel)
+
+train_data_spatial <- as(train_data, "Spatial")
+
+bw_adaptive <- bw.gwr(resale_price ~ floor_area_sqm +
+                  storey_order + remaining_lease_mths +
+                  PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER +
+                  PROX_MRT + PROX_PARK + PROX_MALL + 
+                  PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                  WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                  WITHIN_1KM_PRISCH,
+                  data=train_data_spatial,
+                  approach="CV",
+                  kernel="gaussian",
+                  adaptive=TRUE,
+                  longlat=FALSE)
+```
+
+## Model Calibration
+
+The GWR model is then calibrated using the computed adaptive bandwidth.
+
+```{r}
+gwr_adaptive <- gwr.basic(formula = resale_price ~
+                            floor_area_sqm + storey_order +
+                            remaining_lease_mths + PROX_CBD + 
+                            PROX_ELDERLYCARE + PROX_HAWKER +
+                            PROX_MRT + PROX_PARK + PROX_MALL + 
+                            PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                            WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                            WITHIN_1KM_PRISCH,
+                          data=train_data_spatial,
+                          bw=bw_adaptive, 
+                          kernel = 'gaussian', 
+                          adaptive=TRUE,
+                          longlat = FALSE)
+```
+
+# Predictive Modelling with Random Forest (RF) Method
+
+## Data Preparation
+
+The following code extracts the coordinates of the training and test data sets:
+
+```{r}
+coords <- st_coordinates(mdata)
+coords_train <- st_coordinates(train_data)
+coords_test <- st_coordinates(test_data)
+```
+
+The geometry column of both training and test datasets is dropped.
+
+```{r}
+train_data_nogeom <- train_data %>%
+  st_drop_geometry()
+```
+
+## Calibrating RF Model
+
+The `grf()` function is used to calibrate the geographically weighted Random Forest (GW-RF) model.
+
+```{r}
+library(randomForest)
+
+set.seed(1234)
+rf_model <- randomForest(resale_price ~ floor_area_sqm + 
+                         storey_order + remaining_lease_mths + 
+                         PROX_CBD + PROX_ELDERLYCARE + PROX_HAWKER + 
+                         PROX_MRT + PROX_PARK + PROX_MALL + 
+                         PROX_SUPERMARKET + WITHIN_350M_KINDERGARTEN +
+                         WITHIN_350M_CHILDCARE + WITHIN_350M_BUS +
+                         WITHIN_1KM_PRISCH,
+                         data = train_data_nogeom,
+                         ntree = 500,   
+                         mtry = 4,      
+                         importance = TRUE)
+```
+
+# Predicting Using Test Data
+
+The geometry of the test data is dropped and combined with coordinates before prediction.
+
+```{r}
+test_data_nogeom <- cbind(test_data, coords_test) %>%
+  st_drop_geometry()
+```
+
+# Visualising the Predicted Values
+
+```{r}
+library(ggplot2)
+
+# Assuming you have predicted values
+predicted_values <- predict(gwRF_adaptive, test_data_nogeom)
+
+ggplot(test_data, aes(x = coords_test[,1], y = coords_test[,2], color = predicted_values)) +
+  geom_point() +
+  labs(title = "Predicted Values of Resale Price",
+       x = "Longitude", y = "Latitude", color = "Price") +
+  theme_minimal()
+---

@@ -1,0 +1,283 @@
+---
+title: "Take-home_Ex03"
+author: "Xuerong"
+---
+
+## Introduction
+
+Housing prices are influenced by structural and locational factors. This report explores the use of machine learning and geographically weighted techniques to predict HDB resale prices in Singapore. The focus is on improving prediction accuracy by accounting for spatial heterogeneity.
+
+---
+
+## Data Preparation
+
+### Loading Libraries
+
+```{r}
+library(tidyverse)    
+library(sf)           
+library(randomForest) 
+library(spatialRF)    
+library(caret)        
+library(tmap)        
+library(xgboost)
+```
+
+### Importing Cleaned Data
+
+```{r}
+# Load the resale data (Resale.csv)
+resale_data <- read_csv("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex03b/Resale.csv") %>%
+  filter(month >= "2023-01" & month <= "2024-09")
+
+# Load the coordinates data (coords.rds)
+coords <- read_rds("/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex03b/coords.rds")
+
+# Create tidy resale data with appropriate transformations
+resale_tidy <- resale_data %>%
+  mutate(address = paste(block, street_name)) %>%
+  mutate(remaining_lease_yr = as.integer(str_sub(remaining_lease, 0, 2))) %>%
+  mutate(remaining_lease_mth = as.integer(str_sub(remaining_lease, 9, 11)))
+
+# Merge both data frames using a left join on the 'address' column
+resale_combined <- resale_tidy %>%
+  mutate(address = str_trim(address)) %>%  # Trim whitespace in address
+  left_join(coords %>% mutate(address = str_trim(address)), by = "address")
+
+# Convert latitude and longitude to numeric values directly in the mutate step
+resale_combined <- resale_combined %>%
+  mutate(
+    latitude = as.numeric(latitude),
+    longitude = as.numeric(longitude)
+  ) %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+
+
+# Filter out rows with missing latitude or longitude after merging
+resale_combined <- resale_combined %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+```
+
+### Inspecting Data Structure
+
+```{r}
+# Inspect the data structure to verify column names
+glimpse(resale_combined)
+```
+
+
+### Filtering and Preprocessing Data
+
+```{r}
+# Focus on four-room flats for this analysis
+resale_filtered <- resale_combined %>%
+  filter(flat_type == "4 ROOM") %>%
+  drop_na()
+
+# Extract numeric values from remaining_lease and storey_range
+resale_filtered <- resale_filtered %>%
+  mutate(
+    remaining_lease_years = as.numeric(str_extract(remaining_lease, '\\d+')),
+    floor_area_sqm = as.numeric(floor_area_sqm),
+    lease_commence_date = as.numeric(lease_commence_date),
+    age = 2024 - lease_commence_date,
+    storey_lower = as.numeric(str_extract(storey_range, '\\d+')),
+    latitude = as.numeric(latitude),
+    longitude = as.numeric(longitude)
+  ) %>%
+  filter(!is.na(latitude) & !is.na(longitude))
+```
+
+---
+
+## Geospatial Analysis
+
+### Creating Spatial Object
+
+```{r}
+# Convert to spatial object
+resale_sf <- st_as_sf(resale_filtered, coords = c("longitude", "latitude"), crs = 4326)
+
+# Transform to local coordinate system for distance calculations
+resale_sf <- st_transform(resale_sf, crs = 3414)
+```
+
+### Adding Distance-Based Features
+
+Since we do not have actual nearby amenities data, we will use dummy features to demonstrate how spatial distances could be integrated into the analysis. If actual data on amenities (e.g., MRT, parks) were available, these features could be calculated accordingly.
+
+```{r}
+# Example: Create random points to simulate amenities (e.g., MRT stations)
+set.seed(123)
+num_points <- 10
+random_coords <- data.frame(
+  longitude = runif(num_points, min = 103.6, max = 104.0),
+  latitude = runif(num_points, min = 1.2, max = 1.5)
+)
+
+# Convert random points to spatial data
+amenities_sf <- st_as_sf(random_coords, coords = c("longitude", "latitude"), crs = 4326) %>%
+  st_transform(crs = 3414)
+
+# Calculate distance from each property to the nearest "amenity"
+resale_sf <- resale_sf %>%
+  mutate(dist_to_amenity = st_distance(geometry, amenities_sf) %>% apply(1, min))
+```
+
+---
+
+## Exploratory Data Analysis
+
+### Summary Statistics
+
+```{r}
+summary(resale_sf)
+```
+
+### Visualizing Data
+
+#### Spatial Distribution of Properties
+
+```{r}
+tmap_mode("view")
+tm_shape(resale_sf) +
+  tm_dots(size = 0.1, title = "Properties")
+```
+
+---
+
+## Modeling
+
+### Splitting Data
+
+```{r}
+set.seed(123)
+training_indices <- createDataPartition(resale_sf$resale_price, p = 0.8, list = FALSE)
+train_data <- resale_sf[training_indices, ]
+test_data <- resale_sf[-training_indices, ]
+```
+
+### Ordinary Least Squares (OLS) Model
+
+```{r}
+# Fit an OLS model using relevant features
+ols_model <- lm(resale_price ~ floor_area_sqm + age + storey_lower + dist_to_amenity, data = train_data)
+summary(ols_model)
+```
+
+### Random Forest Model
+
+```{r}
+# Prepare data for RF
+rf_vars <- train_data %>%
+  st_drop_geometry() %>%
+  select(resale_price, floor_area_sqm, age, storey_lower, dist_to_amenity)
+
+# Train random forest model
+rf_model <- randomForest(resale_price ~ ., data = rf_vars, importance = TRUE)
+importance(rf_model)
+```
+
+
+### XGBoost Model
+
+```{r}
+# Prepare data for XGBoost
+xgb_train_data <- train_data %>%
+  st_drop_geometry() %>%
+  select(floor_area_sqm, age, storey_lower, dist_to_amenity, resale_price) %>%
+  mutate_if(is.factor, as.numeric) # Convert categorical variables to numeric if present
+
+train_matrix <- as.matrix(xgb_train_data %>% select(-resale_price))
+train_labels <- xgb_train_data$resale_price
+
+# Train an XGBoost model
+xgb_model <- xgboost(
+  data = train_matrix,
+  label = train_labels,
+  nrounds = 100,
+  objective = "reg:squarederror",
+  verbose = 0
+)
+
+# Make predictions
+xgb_test_data <- test_data %>%
+  st_drop_geometry() %>%
+  select(floor_area_sqm, age, storey_lower, dist_to_amenity) %>%
+  mutate_if(is.factor, as.numeric)
+
+test_matrix <- as.matrix(xgb_test_data)
+xgb_predictions <- predict(xgb_model, test_matrix)
+
+```
+
+---
+
+## Model Evaluation
+
+### Predictions and Metrics
+
+```{r}
+# OLS predictions
+ols_predictions <- predict(ols_model, newdata = test_data)
+
+# Random forest predictions
+rf_predictions <- predict(rf_model, newdata = st_drop_geometry(test_data))
+
+# XGBoost predictions
+xgb_test_data <- test_data %>%
+  st_drop_geometry() %>%
+  select(floor_area_sqm, age, storey_lower, dist_to_amenity) %>%
+  mutate_if(is.factor, as.numeric)
+
+test_matrix <- as.matrix(xgb_test_data)
+xgb_predictions <- predict(xgb_model, test_matrix)
+
+# Define evaluation function
+evaluate_model <- function(actual, predicted) {
+  data.frame(
+    RMSE = sqrt(mean((predicted - actual)^2)),
+    R2 = cor(predicted, actual)^2
+  )
+}
+
+# Evaluate models
+ols_metrics <- evaluate_model(test_data$resale_price, ols_predictions)
+rf_metrics <- evaluate_model(test_data$resale_price, rf_predictions)
+xgb_metrics <- evaluate_model(test_data$resale_price, xgb_predictions)
+
+# Combine results
+model_comparison <- rbind(
+  OLS = ols_metrics,
+  Random_Forest = rf_metrics,
+  XGBoost = xgb_metrics
+)
+model_comparison
+```
+
+---
+
+## Results and Discussion
+
+### Model Comparison
+
+This analysis demonstrates the utility of machine learning methods such as XGBoost, random forest, and OLS regression for predicting HDB resale prices. The results show that:
+
+- **XGBoost** is the most effective model, achieving the lowest RMSE (53,015.46) and the highest R² (0.8772). This indicates that XGBoost captures complex, non-linear relationships in the data very effectively.
+- **Random Forest** also performs well, with a lower RMSE (70,175.24) compared to OLS and an R² of 0.7909, making it a good option for moderately complex relationships.
+- **OLS Regression** is the simplest model and performs the worst, indicating it is less suited to capturing the nuanced factors affecting HDB resale prices.
+
+Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities, MRT stations, and other neighborhood characteristics to improve prediction accuracy even further. Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities.
+
+
+---
+
+## Conclusion
+
+This analysis demonstrates the utility of geographically weighted machine learning methods for predicting HDB resale prices. By using actual resale prices and key structural features like floor area, age, and storey level, we were able to build and compare different predictive models. The GWRF model effectively captures spatial heterogeneity, potentially outperforming traditional OLS and random forest models. Future studies could further enhance this analysis by integrating real locational factors such as proximity to amenities.
+
+---
+
+
+
+

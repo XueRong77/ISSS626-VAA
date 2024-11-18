@@ -1,0 +1,84 @@
+---
+title: "Take-home_Ex02a1"
+---
+
+## Libraries
+
+```{r}
+# Load necessary libraries
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(spdep)
+library(tmap)
+library(leaflet)
+library(reshape2)
+library(stats)
+library(cluster)
+library(tidyr)
+library(rmapshaper)
+```
+
+## Data Loading
+
+We load the shapefile for Thailand's administrative boundaries and the tourism dataset.
+
+```{r}
+shapefile_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/tha_adm_rtsd_itos_20210121_shp/tha_admbnda_adm1_rtsd_20220121.shp'
+gdf1 <- st_read(shapefile_path)
+head(gdf1)
+```
+
+# Load tourism dataset
+
+```{r}
+tourism_data_path <- '/Users/sharon/OneDrive - Singapore Management University/ISSS626 Data/Take_home_Ex/Take_home_Ex02/data/thailand_domestic_tourism_2019_2023_ver2.csv'
+tourism_df <- read.csv(tourism_data_path)
+head(tourism_df)
+```
+
+## Data Preparation
+
+We will merge the tourism data with the province-level shapefile using the province names in English.
+
+The current dataset uses the first day of each month to represent the date, so we will extract the year and month to perform the analysis.
+
+```{r}
+# Convert the 'date' column to Date format if it's not already
+tourism_df$date <- as.Date(tourism_df$date, format = "%Y-%m-%d")
+
+# Extract year and month from the date
+tourism_df$year <- format(tourism_df$date, "%Y")
+tourism_df$month <- format(tourism_df$date, "%m")
+
+# Merge the datasets on province name
+merged_data <- merge(gdf1, tourism_df, by.x = "ADM1_EN", by.y = "province_eng")
+
+# Display the first few rows of the merged data
+head(merged_data)
+```
+
+## Exploratory Data Analysis
+
+We will visualize the distribution of tourist arrivals across provinces using an interactive map.
+
+```{r}
+merged_data_simplified <- ms_simplify(merged_data, keep = 0.05) 
+
+# Create a choropleth map to visualize tourist arrivals across provinces
+tmap_mode("view") # Interactive map mode
+tm_shape(merged_data_simplified) +
+  tm_polygons("value", palette = "OrRd", title = "Tourist Arrivals (2019-2023)") +
+  tm_layout(title = "Tourist Arrivals by Province in Thailand")
+
+# Create an interactive map using Leaflet
+leaflet(merged_data_simplified) %>%
+  addTiles() %>%
+  addPolygons(fillColor = ~colorNumeric("viridis", merged_data$value)(value),
+              color = "#BDBDC3",
+              fillOpacity = 0.7,
+              weight = 1) %>%
+  addLegend(pal = colorNumeric("viridis", merged_data$value),
+            values = merged_data$value,
+            title = "Tourist Arrivals")
+```
